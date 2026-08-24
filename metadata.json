@@ -1,0 +1,6 @@
+{
+  "name": "ClipIQ - Video Audit & Viral Replicator",
+  "description": "Suite de auditoría técnica, optimización, predicción de retención y clonación estructural de videos cortos para la Creator Economy (TikTok, Reels, Shorts).",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
