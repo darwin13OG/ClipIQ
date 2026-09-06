@@ -177,6 +177,94 @@ CAMINO B: VIDEO EDITADO O DESDE URL (Módulo: Auditoría Viral + Replicador v2.0
   ]
 }`;
 
+// Universal Social Network Platform Detector
+function detectSocialPlatform(url: string = '') {
+  const lower = url.toLowerCase();
+  let platform = 'other';
+  let platformName = 'Red Social';
+  let isShort = true;
+  let isLandscape = false;
+  let author = '';
+  let title = '';
+
+  if (lower.includes('tiktok.com')) {
+    platform = 'tiktok';
+    platformName = 'TikTok';
+    isShort = true;
+    const m = url.match(/@([a-zA-Z0-9_.-]+)/);
+    if (m) author = `@${m[1]}`;
+    title = author ? `TikTok de ${author}` : 'Video de TikTok';
+  } else if (lower.includes('instagram.com')) {
+    platform = 'instagram';
+    platformName = 'Instagram Reels';
+    isShort = true;
+    const m = url.match(/instagram\.com\/([a-zA-Z0-9_.-]+)/i);
+    if (m && m[1] !== 'reel' && m[1] !== 'p') author = `@${m[1]}`;
+    title = author ? `Reel de Instagram de ${author}` : 'Reel de Instagram';
+  } else if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    platform = 'youtube';
+    const isYtShort = lower.includes('/shorts/');
+    isShort = isYtShort;
+    isLandscape = !isYtShort;
+    platformName = isYtShort ? 'YouTube Shorts' : 'YouTube';
+    title = isYtShort ? 'YouTube Short' : 'Video de YouTube';
+  } else if (lower.includes('facebook.com') || lower.includes('fb.watch')) {
+    platform = 'facebook';
+    const isReel = lower.includes('/reel/') || lower.includes('/share/r/');
+    isShort = isReel;
+    isLandscape = !isReel;
+    platformName = isReel ? 'Facebook Reel' : 'Facebook Video';
+    title = isReel ? 'Facebook Reel' : 'Video de Facebook';
+  } else if (lower.includes('twitter.com') || lower.includes('x.com')) {
+    platform = 'twitter';
+    platformName = 'X (Twitter)';
+    isShort = true;
+    const m = url.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/i);
+    if (m && m[1] !== 'i' && m[1] !== 'status') author = `@${m[1]}`;
+    title = author ? `Post en X de ${author}` : 'Video en X / Twitter';
+  } else if (lower.includes('threads.net')) {
+    platform = 'threads';
+    platformName = 'Threads';
+    isShort = true;
+    const m = url.match(/threads\.net\/@([a-zA-Z0-9_.-]+)/i);
+    if (m) author = `@${m[1]}`;
+    title = author ? `Video en Threads de ${author}` : 'Video en Threads';
+  } else if (lower.includes('linkedin.com')) {
+    platform = 'linkedin';
+    platformName = 'LinkedIn Video';
+    isShort = true;
+    title = 'Video de LinkedIn';
+  } else if (lower.includes('pinterest.com') || lower.includes('pin.it')) {
+    platform = 'pinterest';
+    platformName = 'Pinterest Pin';
+    isShort = true;
+    title = 'Idea Pin de Pinterest';
+  } else if (lower.includes('twitch.tv')) {
+    platform = 'twitch';
+    platformName = 'Twitch Clip';
+    isShort = false;
+    isLandscape = true;
+    title = 'Clip de Twitch';
+  } else if (lower.includes('reddit.com')) {
+    platform = 'reddit';
+    platformName = 'Reddit Video';
+    isShort = true;
+    title = 'Video en Reddit';
+  } else if (lower.includes('kwai.com')) {
+    platform = 'kwai';
+    platformName = 'Kwai Video';
+    isShort = true;
+    title = 'Video de Kwai';
+  } else {
+    platform = 'other';
+    platformName = 'Video Web';
+    isShort = true;
+    title = 'Video Web';
+  }
+
+  return { platform, platformName, isShort, isLandscape, author, title };
+}
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -198,8 +286,66 @@ app.post('/api/analyze-video', async (req, res) => {
       frames = [], // Array of base64 data URLs: 'data:image/jpeg;base64,...'
       audioDetected = true,
       videoTitle = '',
+      channelName = '',
       nichoHint = '',
     } = req.body;
+
+    // Resolve real multi-platform metadata if URL is provided
+    const socialDetection = detectSocialPlatform(url || '');
+    let resolvedTitle = videoTitle || socialDetection.title;
+    let resolvedAuthor = channelName || socialDetection.author;
+    let resolvedThumbnail = '';
+    const platform = socialDetection.platform;
+    const platformName = socialDetection.platformName;
+    const isShort = socialDetection.isShort;
+    const isLandscape = socialDetection.isLandscape;
+
+    if (sourceType === 'URL_SOCIAL' && url) {
+      // YouTube specific thumbnail / oembed if YouTube
+      if (platform === 'youtube') {
+        const ytMatch = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/i);
+        if (ytMatch && ytMatch[2] && ytMatch[2].length === 11) {
+          resolvedThumbnail = `https://img.youtube.com/vi/${ytMatch[2]}/hqdefault.jpg`;
+          try {
+            const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytMatch[2]}&format=json`);
+            if (oembedRes.ok) {
+              const oembed = await oembedRes.json();
+              if (oembed.title) resolvedTitle = oembed.title;
+              if (oembed.author_name) resolvedAuthor = oembed.author_name;
+            }
+          } catch (oeErr) {
+            console.warn('Could not fetch YouTube oembed server-side:', oeErr);
+          }
+        }
+      } else if (platform === 'tiktok') {
+        try {
+          const ttRes = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+          if (ttRes.ok) {
+            const ttData = await ttRes.json();
+            if (ttData.title) resolvedTitle = ttData.title;
+            if (ttData.author_name) resolvedAuthor = `@${ttData.author_name}`;
+            if (ttData.thumbnail_url) resolvedThumbnail = ttData.thumbnail_url;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Universal noembed fallback for Twitter, Vimeo, Reddit, etc.
+      if (!resolvedTitle || resolvedTitle === socialDetection.title) {
+        try {
+          const noembedRes = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+          if (noembedRes.ok) {
+            const noembed = await noembedRes.json();
+            if (noembed.title) resolvedTitle = noembed.title;
+            if (noembed.author_name) resolvedAuthor = noembed.author_name;
+            if (noembed.thumbnail_url) resolvedThumbnail = noembed.thumbnail_url;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     const ai = getGenAI();
 
@@ -211,31 +357,50 @@ app.post('/api/analyze-video', async (req, res) => {
         sourceType,
         url,
         isRaw,
-        videoTitle,
+        videoTitle: resolvedTitle,
+        channelName: resolvedAuthor,
+        platformName,
         nichoHint,
         duration,
+        isShort,
+        isLandscape,
       });
-      return res.json({ success: true, data: fallbackData, engineMode: 'offline_heuristic' });
+      return res.json({
+        success: true,
+        data: fallbackData,
+        engineMode: 'offline_heuristic',
+        videoMeta: {
+          platform,
+          platformName,
+          title: resolvedTitle,
+          author: resolvedAuthor,
+          thumbnailUrl: resolvedThumbnail,
+          isShort,
+          aspectRatio: isLandscape ? '16:9' : '9:16',
+        },
+      });
     }
 
     // Prepare multimodal parts for Gemini
     const contentsParts: any[] = [];
 
     // Add prompt instructions
-    const promptText = `Por favor analiza este video para la suite ClipIQ (clipiq.pages.dev).
+    const promptText = `Por favor analiza este video real para la suite ClipIQ (clipiq.pages.dev).
 Información recibida:
 - Fuente: ${sourceType || 'GALERIA_LOCAL'}
-- URL / Título: ${url || videoTitle || 'Video local'}
+- URL / Título Real: ${resolvedTitle || url || 'Video local'}
+- Canal / Autor: ${resolvedAuthor || 'Desconocido'}
+- Formato: ${isShort ? '9:16 (Short vertical)' : '16:9 (Horizontal)'}
 - Estado declarado o sugerido: ${videoState || 'AUTO'}
 - Duración aprox: ${duration || 'Desconocida'} segundos
 - Audio detectado: ${audioDetected ? 'Sí' : 'No'}
-- Pista de nicho: ${nichoHint || 'Detectar automáticamente'}
+- Pista de nicho: ${nichoHint || 'Detectar automáticamente del título'}
 - Fotogramas extraídos del video: ${frames.length} imágenes secuenciales.
 
 Instrucciones adicionales:
 1. Evalúa el gancho visual y verbal en los primeros 3 segundos (0-3s).
 2. Si el video es CRUDO (toma única sin cortes), activa 'modulo_guia_crudo.aplicable: true' y proporciona los timestamps de corte exactos y guía de edición.
-3. Si el video es EDITADO o proviene de URL_SOCIAL, activa 'modulo_replicar_video.aplicable: true' con el esqueleto viral paso a paso.
+3. Si el video es EDITADO o proviene de URL_SOCIAL, activa 'modulo_replicar_video.aplicable: true' con el esqueleto viral paso a paso adaptado estrictamente al contenido real del video ("${resolvedTitle || 'este video'}").
 4. Calcula la fuga de audiencia estimada (segundo y motivo) basándote en la retención visual y de audio.
 5. Devuelve ÚNICAMENTE el JSON válido con el esquema estricto de ClipIQ Engine v2.0.`;
 
@@ -283,9 +448,10 @@ Instrucciones adicionales:
         sourceType,
         url,
         isRaw,
-        videoTitle,
+        videoTitle: resolvedTitle,
         nichoHint,
         duration,
+        isShort,
       });
     }
 
@@ -293,6 +459,13 @@ Instrucciones adicionales:
       success: true,
       data: parsedData,
       engineMode: 'gemini-3.7-flash',
+      videoMeta: {
+        title: resolvedTitle,
+        author: resolvedAuthor,
+        thumbnailUrl: resolvedThumbnail,
+        youtubeId,
+        isShort,
+      },
     });
   } catch (error: any) {
     console.error('Error analyzing video with ClipIQ Engine:', error);
@@ -367,10 +540,14 @@ function generateFallbackAnalysis(params: {
   videoTitle?: string;
   nichoHint?: string;
   duration?: number;
+  isShort?: boolean;
 }): any {
   const isRaw = !!params.isRaw;
   const isUrl = params.sourceType === 'URL_SOCIAL';
+  const cleanTitle = params.videoTitle || (params.isShort ? 'YouTube Short' : isUrl ? 'Video Social' : 'Video Local');
   const nicho = params.nichoHint || (isUrl ? 'Creator & Marketing' : 'Lifestyle & Vlog');
+  const isLandscape = !params.isShort && (params.url?.includes('youtube.com/watch') || params.url?.includes('youtu.be/'));
+  const hasWatermark = Boolean(params.url && (params.url.includes('snaptik') || params.url.includes('watermark')));
 
   if (isRaw) {
     return {
@@ -385,6 +562,7 @@ function generateFallbackAnalysis(params: {
         contiene_marca_de_agua: false,
         tiene_audio_voz: true,
         nicho_detectado: nicho,
+        formato_video: isLandscape ? '16:9' : '9:16',
       },
       scores: {
         score_global: 52,
@@ -409,7 +587,7 @@ function generateFallbackAnalysis(params: {
       modulo_guia_crudo: {
         aplicable: true,
         corta_en_segundos: ['00:00-00:02', '00:08-00:10', '00:18-00:20'],
-        hook_sugerido_texto: 'NO COMETAS ESTE ERROR 🛑 (Te ahorrará horas)',
+        hook_sugerido_texto: `NO COMETAS ESTE ERROR EN: ${cleanTitle.slice(0, 25).toUpperCase()} 🛑`,
         hook_sugerido_voz: 'Si estás intentando lograr esto por tu cuenta, mira esto antes de seguir.',
         estilo_subtitulos: 'Montserrat Black / Bold 28pt, amarillo neón con borde negro, animación palabra a palabra.',
         musica_recomendada: 'Future Bass / Lo-Fi Trap dinámico (120-128 BPM) que no tape la voz.',
@@ -419,7 +597,7 @@ function generateFallbackAnalysis(params: {
         esqueleto_viral: {
           gancho_0_3s: {
             accion_camara: 'Gesto de llamada de atención mirando fijamente al lente con zoom in rápido.',
-            texto_pantalla: '3 Secretos que nadie te dice sobre ' + nicho,
+            texto_pantalla: `3 Secretos de: ${cleanTitle.slice(0, 30)}`,
             audio_voz: 'La mayoría de la gente ignora esto y por eso no obtiene resultados.',
           },
           cuerpo_3_15s: [
@@ -432,11 +610,11 @@ function generateFallbackAnalysis(params: {
           },
         },
         publicacion_recomendada: {
-          titulo_viral: `EL ERROR EN ${nicho.toUpperCase()} QUE CASI NADIE NOTA (Y cómo solucionarlo hoy)`,
+          titulo_viral: `${cleanTitle} (Edición Optimizada ClipIQ)`,
           descripcion_seo: `¿Estás cometiendo este fallo típico en tu contenido? Descubre la solución paso a paso que transformará tus resultados.\n\n👇 Guarda este video para aplicarlo en tu próximo proyecto.\n💬 Déjame en comentarios tu mayor duda sobre este tema.`,
           hashtags: [`#${nicho.replace(/\s+/g, '')}`, '#CreacionDeContenido', '#TipsVirales', '#AprendeConmigo', '#ClipIQ'],
-          es_horizontal_o_youtube: true,
-          prompt_miniatura_ia: `YouTube viral thumbnail photography style, extreme expressive face with wide open eyes pointing to a floating glowing 3D badge of ${nicho}, vibrant studio neon lighting with high contrast violet and cyan rim light, cinematic depth of field, 8k resolution, ultra detailed, photorealistic, clean dark background, no messy text, --ar 16:9 --v 6.0`,
+          es_horizontal_o_youtube: isLandscape,
+          prompt_miniatura_ia: `YouTube viral thumbnail photography style for "${cleanTitle}", expressive face, glowing badge, cinematic lighting, 8k resolution, photorealistic, --ar ${isLandscape ? '16:9' : '9:16'}`,
         },
       },
       opciones_exportacion_v2: {
@@ -464,29 +642,32 @@ function generateFallbackAnalysis(params: {
     diagnostico_inicial: {
       fuente_detectada: isUrl ? 'URL_SOCIAL' : 'GALERIA_LOCAL',
       estado_video: 'EDITADO',
-      contiene_marca_de_agua: isUrl,
+      contiene_marca_de_agua: hasWatermark,
       tiene_audio_voz: true,
       nicho_detectado: nicho,
+      formato_video: isLandscape ? '16:9' : '9:16',
     },
     scores: {
-      score_global: 86,
+      score_global: isLandscape ? 83 : 87,
       potencial_viral: 'Alto',
-      hook_score: 89,
-      retencion_score: 82,
+      hook_score: isLandscape ? 80 : 89,
+      retencion_score: isLandscape ? 82 : 84,
     },
     auditoria_tecnica: {
-      ritmo_cortes: 'Óptimo',
+      ritmo_cortes: isLandscape ? 'Narrativo' : 'Óptimo',
       balance_audio: 'Excelente',
       legibilidad_texto: 'Buena',
       fuga_audiencia_estimada: {
-        segundo: '00:06',
-        motivo: 'Exceso de texto denso en pantalla sin cambio de plano o soporte auditivo.',
+        segundo: isLandscape ? '00:12' : '00:05',
+        motivo: `Punto de inflexión de retención tras el gancho inicial de "${cleanTitle.slice(0, 30)}".`,
       },
     },
     puntos_clave_mejora: [
-      'Aumenta el dinamismo en el segundo 00:06 con un B-roll o efecto de sonido "Whoosh".',
-      'Mantén los subtítulos 120px arriba del borde inferior para respetar la zona segura de TikTok e IG.',
-      'Refuerza el CTA final con un incentivo específico (ej. "Comenta PLANTILLA y te lo envío").',
+      `Fortalecer el gancho de los primeros 3 segundos de "${cleanTitle.slice(0, 30)}" con texto de alto contraste.`,
+      isLandscape
+        ? 'Agregar dinamismo cada 5-7 segundos mediante B-rolls o cambios de plano para mantener el tiempo de reproducción.'
+        : 'Mantener subtítulos y elementos clave 120px arriba del borde inferior para respetar la zona segura.',
+      'Reforzar el CTA final con un llamado a comentar una palabra clave específica.',
     ],
     modulo_guia_crudo: {
       aplicable: false,
@@ -500,12 +681,12 @@ function generateFallbackAnalysis(params: {
       aplicable: true,
       esqueleto_viral: {
         gancho_0_3s: {
-          accion_camara: 'Muestra el resultado final en los primeros 2 segundos antes de explicar el método.',
-          texto_pantalla: 'Cómo logré este resultado en menos de 24 horas 🔥',
-          audio_voz: 'No compres cursos caros hasta que pruebes este método gratuito.',
+          accion_camara: 'Corte rápido a plano medio mirando fijo a cámara con gesto de revelación',
+          texto_pantalla: `EL SECRETO DE: ${cleanTitle.slice(0, 28).toUpperCase()}`,
+          audio_voz: 'No cometas el error que comete la mayoría en este tema hasta que veas esto.',
         },
         cuerpo_3_15s: [
-          'Paso 1 (03-06s): El 90% de las personas hace esto mal.',
+          'Paso 1 (03-06s): El 90% de las personas hace esto mal al principio.',
           'Paso 2 (07-10s): En su lugar, aplica esta configuración directa.',
           'Paso 3 (11-14s): Mira la diferencia inmediata en pantalla.',
         ],
@@ -514,15 +695,15 @@ function generateFallbackAnalysis(params: {
         },
       },
       publicacion_recomendada: {
-        titulo_viral: `Cómo DUPLICAR tus Resultados en ${nicho} (Sin perder semanas probando)`,
-        descripcion_seo: `Guía definitiva y fórmula paso a paso para dominar ${nicho}. Aplicable hoy mismo sin importar tu nivel.\n\n⚡ Replicado y analizado con ClipIQ (clipiq.pages.dev)\n📌 No olvides suscribirte y dejar tu like para más contenido de alto valor.`,
+        titulo_viral: `${cleanTitle} (Estructura Viral Optimizada)`,
+        descripcion_seo: `Análisis y fórmula paso a paso de "${cleanTitle}". Optimizado para máxima retención y engagement.\n\n⚡ Replicado y analizado con ClipIQ (clipiq.pages.dev)\n📌 Suscríbete y guarda este video para tus próximas creaciones.`,
         hashtags: [`#${nicho.replace(/\s+/g, '')}`, '#ViralStrategy', '#HacksDeEdicion', '#Shorts', '#ReelsTips', '#ClipIQ'],
-        es_horizontal_o_youtube: true,
-        prompt_miniatura_ia: `Ultra viral YouTube video thumbnail, hyper-detailed photography, young content creator looking surprised at camera holding a glowing futuristic tablet with ${nicho} metrics, dramatic cinematic lighting, dual color scheme ultraviolet and electric blue, shallow depth of field, 8k resolution, Unreal Engine 5 render style, high engagement visual framing, clean layout, --ar 16:9 --v 6.0`,
+        es_horizontal_o_youtube: isLandscape,
+        prompt_miniatura_ia: `Ultra viral YouTube video thumbnail for "${cleanTitle}", dramatic lighting, expressive face, high contrast visual framing, clean layout, --ar ${isLandscape ? '16:9' : '9:16'}`,
       },
     },
     opciones_exportacion_v2: {
-      recomienda_limpiar_marca_agua: isUrl,
+      recomienda_limpiar_marca_agua: hasWatermark,
       configuracion_outro_clipiq: {
         agregar_outro: true,
         duracion_segundos: 2,
@@ -530,7 +711,7 @@ function generateFallbackAnalysis(params: {
       },
     },
     sugerencias_chat_interactivo: [
-      '¿Qué 3 ganchos alternativos de alta conversión puedo probar?',
+      `¿Qué 3 ganchos alternativos puedo usar para "${cleanTitle.slice(0, 25)}"?`,
       '¿Cómo adapto esta misma estructura para Instagram Reels?',
       '¿Qué hashtags y descripción optimizan el SEO en TikTok?',
     ],

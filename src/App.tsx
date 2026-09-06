@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Header } from './components/Header';
 import { VideoInputSection } from './components/VideoInputSection';
@@ -10,9 +10,16 @@ import { ChatModal } from './components/ChatModal';
 import { CutGuideModal } from './components/CutGuideModal';
 import { TeleprompterModal } from './components/TeleprompterModal';
 import { ExportModal } from './components/ExportModal';
-import { BottomNavBar, MainTabType } from './components/BottomNavBar';
+import { ShareModal } from './components/ShareModal';
+import { BottomNavBar } from './components/BottomNavBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { extractVideoFrames } from './utils/videoExtractor';
+import {
+  parseSocialUrl,
+  fetchSocialMetadata,
+  extractUrlFromText,
+  generateContextualAudit,
+} from './utils/socialVideoHelper';
 import { MOCK_ANALYSES } from './data/samples';
 import { ClipIQAnalysisResult, SampleVideoItem } from './types';
 import { Smartphone, Tv, Sparkles } from 'lucide-react';
@@ -20,12 +27,14 @@ import { Smartphone, Tv, Sparkles } from 'lucide-react';
 export default function App() {
   const [analysisResult, setAnalysisResult] = useState<ClipIQAnalysisResult | null>(null);
   const [videoSrc, setVideoSrc] = useState<string | undefined>(undefined);
+  const [youtubeId, setYoutubeId] = useState<string | undefined>(undefined);
+  const [videoTitle, setVideoTitle] = useState<string | undefined>(undefined);
+  const [channelName, setChannelName] = useState<string | undefined>(undefined);
   const [urlSource, setUrlSource] = useState<string | undefined>(undefined);
   const [fallbackThumbnail, setFallbackThumbnail] = useState<string | undefined>(undefined);
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingStep, setAnalyzingStep] = useState('');
-  const [activeMobileTab, setActiveMobileTab] = useState<MainTabType>('dashboard');
 
   // Modals
   const [isReplicationModalOpen, setIsReplicationModalOpen] = useState(false);
@@ -34,6 +43,7 @@ export default function App() {
   const [isCutGuideModalOpen, setIsCutGuideModalOpen] = useState(false);
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Trigger celebration on high score
   const triggerCelebration = () => {
@@ -49,26 +59,72 @@ export default function App() {
     }
   };
 
-  // Analyze URL
+  // Handle incoming PWA Web Share Target on startup (e.g. shared from YouTube app on mobile)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sharedUrl = params.get('url');
+      const sharedText = params.get('text');
+      const sharedTitle = params.get('title');
+
+      let targetUrl = '';
+      if (sharedUrl && (sharedUrl.startsWith('http://') || sharedUrl.startsWith('https://'))) {
+        targetUrl = sharedUrl;
+      } else if (sharedText) {
+        const extracted = extractUrlFromText(sharedText);
+        if (extracted) {
+          targetUrl = extracted;
+        }
+      }
+
+      if (targetUrl) {
+        // Clean URL params so refresh doesn't re-trigger analysis unexpectedly
+        window.history.replaceState({}, document.title, window.location.pathname);
+        handleAnalyzeUrl(targetUrl);
+      }
+    } catch (e) {
+      console.warn('Error reading share_target params:', e);
+    }
+  }, []);
+
+  // Analyze URL (Real YouTube, TikTok, Instagram or generic video link)
   const handleAnalyzeUrl = async (url: string, nicho?: string) => {
     setUrlSource(url);
     setIsAnalyzing(true);
-    setAnalyzingStep('Conectando con plataforma social...');
+    setAnalyzingStep('Conectando con enlace y extrayendo metadatos...');
     setVideoSrc(undefined);
 
-    const isYoutubeLong = url.includes('youtube.com/watch') || url.includes('youtu.be/');
-    const detectedFormat = isYoutubeLong ? '16:9' : '9:16';
-    setAspectRatio(detectedFormat);
+    const parsed = parseSocialUrl(url);
+    setYoutubeId(parsed.videoId);
+    setAspectRatio(parsed.aspectRatio);
+    if (parsed.thumbnailUrl) {
+      setFallbackThumbnail(parsed.thumbnailUrl);
+    }
 
-    setFallbackThumbnail(
-      isYoutubeLong
-        ? 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop&q=80'
-    );
+    // Attempt to fetch real metadata (title, creator, high-res thumbnail)
+    let metaTitle = parsed.isShort ? 'YouTube Short' : 'Video de YouTube';
+    let metaAuthor = '';
+    try {
+      const meta = await fetchSocialMetadata(url);
+      if (meta.title) {
+        metaTitle = meta.title;
+        setVideoTitle(meta.title);
+      }
+      if (meta.author) {
+        metaAuthor = meta.author;
+        setChannelName(meta.author);
+      }
+      if (meta.thumbnailUrl) {
+        setFallbackThumbnail(meta.thumbnailUrl);
+      }
+    } catch (err) {
+      console.warn('Could not fetch client-side social metadata:', err);
+    }
 
     try {
-      setTimeout(() => setAnalyzingStep('Evaluando gancho de 0-3s y zona segura...'), 1100);
-      setTimeout(() => setAnalyzingStep('Calculando retención y puntos de fuga...'), 2200);
+      setTimeout(() => setAnalyzingStep('Evaluando gancho 0-3s, audio y zona segura...'), 1000);
+      setTimeout(() => setAnalyzingStep('Calculando retención y puntos de fuga...'), 2000);
 
       const response = await fetch('/api/analyze-video', {
         method: 'POST',
@@ -76,9 +132,11 @@ export default function App() {
         body: JSON.stringify({
           sourceType: 'URL_SOCIAL',
           url,
+          videoTitle: metaTitle,
+          channelName: metaAuthor,
           videoState: 'EDITADO',
           nichoHint: nicho,
-          formato: detectedFormat,
+          formato: parsed.aspectRatio,
         }),
       });
 
@@ -88,6 +146,11 @@ export default function App() {
         if (resJson.data.diagnostico_inicial?.formato_video) {
           setAspectRatio(resJson.data.diagnostico_inicial.formato_video);
         }
+        if (resJson.videoMeta) {
+          if (resJson.videoMeta.title) setVideoTitle(resJson.videoMeta.title);
+          if (resJson.videoMeta.author) setChannelName(resJson.videoMeta.author);
+          if (resJson.videoMeta.thumbnailUrl) setFallbackThumbnail(resJson.videoMeta.thumbnailUrl);
+        }
         if (resJson.data.scores?.score_global >= 75) {
           triggerCelebration();
         }
@@ -95,12 +158,19 @@ export default function App() {
         throw new Error('API response invalid');
       }
     } catch (err) {
-      console.warn('Backend API unavailble, using fallback analysis:', err);
-      // Fallback for static hosts like Cloudflare Pages
-      const fallback = isYoutubeLong ? MOCK_ANALYSES['youtube-horizontal'] : MOCK_ANALYSES['viral-ecommerce'];
-      setAnalysisResult(fallback);
-      if (fallback.diagnostico_inicial?.formato_video) {
-        setAspectRatio(fallback.diagnostico_inicial.formato_video);
+      console.warn('Backend API unavailable, generating contextual analysis for real video:', err);
+      // Fallback for static hosts (e.g. Cloudflare Pages) using authentic contextual audit of the actual video!
+      const contextualAnalysis = generateContextualAudit({
+        url,
+        title: metaTitle,
+        author: metaAuthor,
+        nichoHint: nicho,
+        aspectRatio: parsed.aspectRatio,
+        isShort: parsed.isShort,
+      });
+      setAnalysisResult(contextualAnalysis);
+      if (contextualAnalysis.diagnostico_inicial?.formato_video) {
+        setAspectRatio(contextualAnalysis.diagnostico_inicial.formato_video);
       }
     } finally {
       setIsAnalyzing(false);
@@ -112,6 +182,9 @@ export default function App() {
   const handleAnalyzeFile = async (file: File, state: 'CRUDO' | 'EDITADO', nicho?: string) => {
     const fileBlobUrl = URL.createObjectURL(file);
     setVideoSrc(fileBlobUrl);
+    setYoutubeId(undefined);
+    setVideoTitle(file.name);
+    setChannelName(undefined);
     setUrlSource(undefined);
     setFallbackThumbnail(undefined);
     setIsAnalyzing(true);
@@ -173,6 +246,9 @@ export default function App() {
   // Select Sample Preset
   const handleSelectSample = (sample: SampleVideoItem) => {
     setVideoSrc(sample.videoSrc);
+    setYoutubeId(undefined);
+    setVideoTitle(sample.title);
+    setChannelName(undefined);
     setUrlSource(undefined);
     setFallbackThumbnail(sample.thumbnailUrl);
     setAspectRatio(sample.aspectRatio || '9:16');
@@ -196,11 +272,13 @@ export default function App() {
   const handleNewAnalysis = () => {
     setAnalysisResult(null);
     setVideoSrc(undefined);
+    setYoutubeId(undefined);
+    setVideoTitle(undefined);
+    setChannelName(undefined);
     setUrlSource(undefined);
     setFallbackThumbnail(undefined);
     setAspectRatio('9:16');
     setIsAnalyzing(false);
-    setActiveMobileTab('dashboard');
   };
 
   const isRaw = analysisResult?.diagnostico_inicial?.estado_video === 'CRUDO';
@@ -214,6 +292,7 @@ export default function App() {
           hasResult={!!analysisResult || isAnalyzing}
           onNewAnalysis={handleNewAnalysis}
           onOpenExport={() => setIsExportModalOpen(true)}
+          onOpenShare={() => setIsShareModalOpen(true)}
         />
 
         {/* Main Content Area */}
@@ -252,6 +331,9 @@ export default function App() {
 
                     <VideoPlayerWithSafeZone
                       videoSrc={videoSrc}
+                      youtubeId={youtubeId}
+                      videoTitle={videoTitle}
+                      channelName={channelName}
                       fallbackThumbnail={fallbackThumbnail}
                       hasWatermark={analysisResult?.diagnostico_inicial?.contiene_marca_de_agua}
                       dropOffData={analysisResult?.auditoria_tecnica?.fuga_audiencia_estimada}
@@ -302,12 +384,8 @@ export default function App() {
                 /* Layout: Video Player on LEFT, Information on RIGHT        */
                 /* ======================================================== */
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  {/* Left Column: Vertical Video Player */}
-                  <div
-                    className={`lg:col-span-5 lg:sticky lg:top-20 space-y-4 ${
-                      activeMobileTab === 'video' ? 'block' : 'hidden md:block'
-                    }`}
-                  >
+                  {/* Left Column: Vertical Video Player (Top on mobile, pinned left on desktop) */}
+                  <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4">
                     <div className="bg-neutral-900/60 border border-neutral-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-3">
                       <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
@@ -323,6 +401,9 @@ export default function App() {
 
                       <VideoPlayerWithSafeZone
                         videoSrc={videoSrc}
+                        youtubeId={youtubeId}
+                        videoTitle={videoTitle}
+                        channelName={channelName}
                         fallbackThumbnail={fallbackThumbnail}
                         hasWatermark={analysisResult?.diagnostico_inicial?.contiene_marca_de_agua}
                         dropOffData={analysisResult?.auditoria_tecnica?.fuga_audiencia_estimada}
@@ -352,7 +433,7 @@ export default function App() {
                       </div>
                     ) : (
                       analysisResult && (
-                        <div className={`${activeMobileTab === 'dashboard' ? 'block' : 'hidden md:block'} space-y-6`}>
+                        <div className="space-y-6">
                           <MetricCards
                             scores={analysisResult.scores}
                             diagnostico={analysisResult.diagnostico_inicial}
@@ -378,11 +459,11 @@ export default function App() {
         {/* Mobile Bottom Navigation Bar */}
         {analysisResult && (
           <BottomNavBar
-            activeTab={activeMobileTab}
-            onChangeTab={setActiveMobileTab}
+            onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             onOpenReplication={() => setIsReplicationModalOpen(true)}
             onOpenDownload={() => setIsDownloadModalOpen(true)}
             onOpenChat={() => setIsChatModalOpen(true)}
+            onOpenShare={() => setIsShareModalOpen(true)}
           />
         )}
 
@@ -434,6 +515,13 @@ export default function App() {
         <ExportModal
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
+          analysisResult={analysisResult}
+        />
+
+        {/* 7. Modal: Compartir App Real & Análisis */}
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
           analysisResult={analysisResult}
         />
       </div>

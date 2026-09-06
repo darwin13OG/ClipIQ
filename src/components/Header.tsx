@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Plus, Download, Smartphone } from 'lucide-react';
+import { Share2, Plus, Download, Smartphone, FileText } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
 interface HeaderProps {
   onNewAnalysis?: () => void;
   onOpenExport?: () => void;
+  onOpenShare?: () => void;
   hasResult?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onNewAnalysis,
   onOpenExport,
+  onOpenShare,
   hasResult,
 }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -62,6 +64,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
+          {/* Share App Button */}
+          {onOpenShare && (
+            <button
+              onClick={onOpenShare}
+              title="Compartir ClipIQ"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-cyan-300 border border-neutral-800 transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Compartir</span>
+            </button>
+          )}
+
           {/* PWA Install Button */}
           {!isInstalled && (
             <button
@@ -69,9 +83,9 @@ export const Header: React.FC<HeaderProps> = ({
               title="Instalar ClipIQ en tu móvil o PC (PWA)"
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition-colors"
             >
-              <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+              <Smartphone className="w-3.5 h-3.5 text-violet-400" />
               <span className="hidden sm:inline">Instalar App</span>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500/10 text-cyan-300 font-mono">PWA</span>
+              <span className="text-[9px] px-1 py-0.2 rounded bg-violet-500/10 text-violet-300 font-mono">PWA</span>
             </button>
           )}
 
@@ -82,16 +96,17 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5 text-violet-400" />
-                <span>Nuevo Video</span>
+                <span className="hidden sm:inline">Nuevo</span>
               </button>
 
               {onOpenExport && (
                 <button
                   onClick={onOpenExport}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 text-white shadow-md shadow-violet-600/20 hover:opacity-95 transition-all"
+                  title="Exportar Reporte y JSON"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 shadow-md transition-all"
                 >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Reporte</span>
+                  <FileText className="w-3.5 h-3.5 text-neutral-300" />
+                  <span className="hidden sm:inline">Exportar</span>
                 </button>
               )}
             </>

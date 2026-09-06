@@ -15,11 +15,15 @@ import {
   MessageCircle,
   Share2,
   RotateCcw,
+  ExternalLink,
 } from 'lucide-react';
 import { FugaAudiencia } from '../types';
 
 interface VideoPlayerProps {
   videoSrc?: string;
+  youtubeId?: string;
+  videoTitle?: string;
+  channelName?: string;
   fallbackThumbnail?: string;
   hasWatermark?: boolean;
   dropOffData?: FugaAudiencia;
@@ -33,6 +37,9 @@ interface VideoPlayerProps {
 
 export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
   videoSrc,
+  youtubeId,
+  videoTitle,
+  channelName,
   fallbackThumbnail,
   hasWatermark,
   dropOffData,
@@ -197,8 +204,16 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
             : 'max-w-[360px] aspect-[9/16] rounded-3xl'
         } overflow-hidden bg-black border-2 border-neutral-800 shadow-2xl flex flex-col justify-between select-none transition-all duration-300`}
       >
-        {/* HTML5 Video */}
-        {videoSrc ? (
+        {/* Video Display (Real YouTube Embed or Native HTML5 Video) */}
+        {youtubeId && !showSafeZone ? (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&enablejsapi=1&rel=0&modestbranding=1`}
+            title={videoTitle || 'Reproductor de YouTube'}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full border-0 bg-black z-10"
+          />
+        ) : videoSrc ? (
           <video
             ref={videoRef}
             src={videoSrc}
@@ -210,7 +225,7 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
         ) : fallbackThumbnail ? (
           <img
             src={fallbackThumbnail}
-            alt="Preview"
+            alt={videoTitle || 'Preview'}
             className={`absolute inset-0 w-full h-full ${isLandscape ? 'object-contain bg-black' : 'object-cover'}`}
           />
         ) : (
@@ -330,8 +345,8 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
           </div>
         )}
 
-        {/* Center Play Button on Pause */}
-        {!isAnalyzing && !isPlaying && (
+        {/* Center Play Button on Native Video Pause */}
+        {videoSrc && !isAnalyzing && !isPlaying && (
           <div
             onClick={togglePlay}
             className="absolute inset-0 z-15 flex items-center justify-center bg-black/25 cursor-pointer group"
@@ -346,73 +361,114 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
       {/* Video Bottom External HUD Controls (Positioned Below the Player - Completely Clear Video View) */}
       {!isAnalyzing && (
         <div className={`w-full ${isLandscape ? 'max-w-4xl' : 'max-w-[360px]'} mt-2.5 bg-neutral-900/95 border border-neutral-800 rounded-2xl p-3 space-y-2 shadow-xl`}>
-          {/* Timeline Scrubber */}
-          <div className="relative flex items-center">
-            {/* Hook Range 0-3s */}
-            <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-amber-400/80 rounded-l z-10 pointer-events-none"
-              style={{ width: `${hookPercent}%` }}
-              title="Gancho crítico (0-3s)"
-            />
-
-            {/* Failure Marker */}
-            {dropOffData && (
-              <div
-                className="absolute top-1/2 -translate-y-1/2 z-30 -ml-2 cursor-pointer"
-                style={{ left: `${dropOffPercent}%` }}
-                onClick={jumpToDropOff}
-                title={`Falla detectada en ${dropOffData.segundo}: Clic para saltar`}
-              >
-                <div className="w-4 h-4 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center text-[8px] font-bold text-white animate-bounce">
-                  !
+          {youtubeId ? (
+            /* YouTube Specific Controls & Information */
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-white truncate text-xs">
+                  {videoTitle || 'Video de YouTube'}
                 </div>
+                {channelName && (
+                  <div className="text-[11px] text-neutral-400 truncate">
+                    {channelName}
+                  </div>
+                )}
               </div>
-            )}
-
-            <input
-              type="range"
-              min="0"
-              max={duration || 30}
-              step="0.1"
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-violet-500 z-20"
-            />
-          </div>
-
-          {/* Controls Bar & Quick Jump to Failure */}
-          <div className="flex items-center justify-between text-white text-xs">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={togglePlay}
-                className="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
-                title={isPlaying ? 'Pausar' : 'Reproducir'}
-              >
-                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
-                title={isMuted ? 'Activar sonido' : 'Silenciar'}
-              >
-                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              </button>
-              <span className="font-mono text-[11px] text-neutral-300">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                {dropOffData && (
+                  <div className="hidden sm:flex items-center gap-1 text-[11px] text-rose-400 font-medium bg-rose-950/40 border border-rose-500/30 px-2 py-0.5 rounded-lg">
+                    <Flame className="w-3 h-3 text-rose-400" />
+                    <span>Falla: {dropOffData.segundo}</span>
+                  </div>
+                )}
+                <a
+                  href={`https://www.youtube.com/watch?v=${youtubeId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 text-[11px] font-bold transition-colors"
+                >
+                  <span>Abrir en YouTube</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
+          ) : videoSrc ? (
+            /* Native Video Controls */
+            <>
+              {/* Timeline Scrubber */}
+              <div className="relative flex items-center">
+                {/* Hook Range 0-3s */}
+                <div
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-amber-400/80 rounded-l z-10 pointer-events-none"
+                  style={{ width: `${hookPercent}%` }}
+                  title="Gancho crítico (0-3s)"
+                />
 
-            {dropOffData && (
-              <button
-                onClick={jumpToDropOff}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-[11px] font-bold text-rose-300 transition-colors shadow-sm"
-                title="Saltar al segundo exacto donde cae la retención"
-              >
-                <Flame className="w-3.5 h-3.5 text-rose-400" />
-                <span>Ver Falla ({dropOffData.segundo})</span>
-              </button>
-            )}
-          </div>
+                {/* Failure Marker */}
+                {dropOffData && (
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 z-30 -ml-2 cursor-pointer"
+                    style={{ left: `${dropOffPercent}%` }}
+                    onClick={jumpToDropOff}
+                    title={`Falla detectada en ${dropOffData.segundo}: Clic para saltar`}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center text-[8px] font-bold text-white animate-bounce">
+                      !
+                    </div>
+                  </div>
+                )}
+
+                <input
+                  type="range"
+                  min="0"
+                  max={duration || 30}
+                  step="0.1"
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-violet-500 z-20"
+                />
+              </div>
+
+              {/* Controls Bar & Quick Jump to Failure */}
+              <div className="flex items-center justify-between text-white text-xs">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={togglePlay}
+                    className="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
+                    title={isPlaying ? 'Pausar' : 'Reproducir'}
+                  >
+                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                    title={isMuted ? 'Activar sonido' : 'Silenciar'}
+                  >
+                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                  </button>
+                  <span className="font-mono text-[11px] text-neutral-300">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                </div>
+
+                {dropOffData && (
+                  <button
+                    onClick={jumpToDropOff}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-[11px] font-bold text-rose-300 transition-colors shadow-sm"
+                    title="Saltar al segundo exacto donde cae la retención"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Ver Falla ({dropOffData.segundo})</span>
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between text-xs text-neutral-400">
+              <span className="font-medium truncate">{videoTitle || 'Vista previa'}</span>
+              <span className="text-[11px] text-neutral-500">{aspectRatio}</span>
+            </div>
+          )}
         </div>
       )}
     </div>

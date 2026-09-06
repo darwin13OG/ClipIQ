@@ -31,6 +31,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   if (!isOpen || !analysisResult) return null;
 
+  const currentHost = typeof window !== 'undefined' ? window.location.host : 'clipiq.pages.dev';
+  const currentAppUrl = typeof window !== 'undefined' ? window.location.href : 'https://clipiq.pages.dev';
+
   const jsonString = JSON.stringify(analysisResult, null, 2);
 
   const handleCopyJSON = () => {
@@ -53,7 +56,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     const markdown = `# REPORTE EJECUTIVO DE AUDITORÍA VIRAL - CLIPIQ
 ==================================================
 App: ${analysisResult.meta_app.app_name} (v${analysisResult.meta_app.version})
-Dominio Oficial: ${analysisResult.meta_app.domain}
+Dominio Oficial: ${currentHost}
 Fecha: ${new Date().toLocaleDateString()}
 ==================================================
 
@@ -89,7 +92,7 @@ ${analysisResult.modulo_replicar_video.esqueleto_viral.cuerpo_3_15s.map((c, i) =
 
 ==================================================
 Generado automáticamente por ClipIQ Engine v2.0 Enterprise
-https://clipiq.pages.dev`;
+${currentAppUrl}`;
 
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -109,7 +112,7 @@ https://clipiq.pages.dev`;
             <BrandLogo size="sm" showText={false} />
             <div>
               <h3 className="text-sm font-bold text-white">Centro de Exportación & Outro</h3>
-              <p className="text-[11px] text-neutral-400">clipiq.pages.dev</p>
+              <p className="text-[11px] text-neutral-400 font-mono">{currentHost}</p>
             </div>
           </div>
           <button
@@ -162,7 +165,7 @@ https://clipiq.pages.dev`;
                 </h4>
                 <p className="text-xs font-mono text-violet-300 mt-1 flex items-center gap-1">
                   <Globe className="w-3 h-3" />
-                  <span>clipiq.pages.dev</span>
+                  <span>{currentHost}</span>
                 </p>
                 <div className="absolute bottom-2 right-3 text-[10px] font-mono text-neutral-500">
                   Duración: 2s
