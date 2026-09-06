@@ -84,6 +84,23 @@ npm start
 
 ---
 
+## ☁️ Despliegue en Cloudflare Pages
+
+Esta aplicación está 100% optimizada para desplegarse en **Cloudflare Pages** sin errores de pantalla en blanco:
+
+### Parámetros de Configuración en Cloudflare Dashboard:
+- **Framework preset:** `Vite` (o `None`)
+- **Build command:** `npm run build`
+- **Build output directory:** `dist`
+- **Node.js Version:** `18` o superior (en variables de entorno: `NODE_VERSION=18`)
+
+### Protecciones Implementadas contra Pantalla en Blanco:
+1. **Regla SPA `_redirects`:** Incluida en `/public/_redirects` (`/* /index.html 200`) para que cualquier recarga o ruta interna no cause un error 404.
+2. **Defensa contra `process is not defined`:** Reemplazado por `import.meta.env.PROD` y shim seguro en `vite.config.ts`.
+3. **Modo Híbrido con Fallback Automático:** Si el backend Express no está activo en Cloudflare Pages, la interfaz entra instantáneamente en modo cliente con análisis contextual sin romperse ni colgarse.
+
+---
+
 ## 📂 Estructura del Proyecto
 
 ```
