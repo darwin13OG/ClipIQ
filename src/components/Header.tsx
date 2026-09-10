@@ -61,8 +61,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* PWA Install Button */}
-          {!isInstalled && (
+          {/* PWA Install Button: Only visible on the initial screen, never during analysis */}
+          {!isInstalled && !hasResult && (
             <button
               onClick={handleInstallClick}
               title="Instalar ClipIQ como app nativa (PWA)"
