@@ -1,22 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Plus, Download, Smartphone, FileText } from 'lucide-react';
+import { Plus, Smartphone, X, Check } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
 interface HeaderProps {
   onNewAnalysis?: () => void;
-  onOpenExport?: () => void;
-  onOpenShare?: () => void;
   hasResult?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onNewAnalysis,
-  onOpenExport,
-  onOpenShare,
   hasResult,
 }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -50,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
         setDeferredPrompt(null);
       }
     } else {
-      alert('Para instalar ClipIQ en tu dispositivo: abre el menú de tu navegador y selecciona "Agregar a la pantalla de inicio" o "Instalar aplicación".');
+      setShowInstallGuide(true);
     }
   };
 
@@ -63,57 +60,69 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2">
-          {/* Share App Button */}
-          {onOpenShare && (
-            <button
-              onClick={onOpenShare}
-              title="Compartir ClipIQ"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-cyan-300 border border-neutral-800 transition-colors"
-            >
-              <Share2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline">Compartir</span>
-            </button>
-          )}
-
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {/* PWA Install Button */}
           {!isInstalled && (
             <button
               onClick={handleInstallClick}
-              title="Instalar ClipIQ en tu móvil o PC (PWA)"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition-colors"
+              title="Instalar ClipIQ como app nativa (PWA)"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-xl bg-violet-600/15 hover:bg-violet-600/25 text-violet-300 border border-violet-500/30 shadow-sm shadow-violet-600/10 transition-all active:scale-95 shrink-0"
             >
-              <Smartphone className="w-3.5 h-3.5 text-violet-400" />
-              <span className="hidden sm:inline">Instalar App</span>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-violet-500/10 text-violet-300 font-mono">PWA</span>
+              <Smartphone className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+              <span>Instalar</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/25 text-violet-200 font-mono font-bold">App</span>
             </button>
           )}
 
           {hasResult && (
-            <>
-              <button
-                onClick={onNewAnalysis}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5 text-violet-400" />
-                <span className="hidden sm:inline">Nuevo</span>
-              </button>
-
-              {onOpenExport && (
-                <button
-                  onClick={onOpenExport}
-                  title="Exportar Reporte y JSON"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 shadow-md transition-all"
-                >
-                  <FileText className="w-3.5 h-3.5 text-neutral-300" />
-                  <span className="hidden sm:inline">Exportar</span>
-                </button>
-              )}
-            </>
+            <button
+              onClick={onNewAnalysis}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/25 transition-all active:scale-[0.98]"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nuevo Análisis</span>
+            </button>
           )}
         </div>
       </div>
+
+      {/* PWA Install Guide Modal without alert() */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-violet-600/20 text-violet-400 flex items-center justify-center">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <h4 className="text-sm font-bold text-white">Instalar ClipIQ</h4>
+              </div>
+              <button
+                onClick={() => setShowInstallGuide(false)}
+                className="p-1 rounded-lg text-neutral-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs text-neutral-300">
+              <p className="font-medium text-white">Para tener ClipIQ como app nativa:</p>
+              <ol className="list-decimal list-inside space-y-1.5 text-neutral-400">
+                <li>Abre el menú de tu navegador (⋮ en Chrome o compartir ⎋ en Safari).</li>
+                <li>Selecciona <strong className="text-white">"Agregar a la pantalla de inicio"</strong> o <strong className="text-white">"Instalar aplicación"</strong>.</li>
+                <li>¡Listo! Podrás abrir ClipIQ directamente sin abrir el navegador.</li>
+              </ol>
+            </div>
+            <button
+              onClick={() => setShowInstallGuide(false)}
+              className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-colors"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
+
 

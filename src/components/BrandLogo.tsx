@@ -78,7 +78,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
               Studio
             </span>
           </div>
-          <span className="text-[10px] text-neutral-400 tracking-tight font-medium mt-0.5">
+          <span className="text-[10px] text-neutral-400 tracking-tight font-medium mt-0.5 truncate max-w-[175px] sm:max-w-none">
             Video Retention & Safe Zone AI
           </span>
         </div>

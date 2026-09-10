@@ -5,19 +5,15 @@ import {
   Camera,
   Film,
   Sparkles,
-  Flame,
-  Play,
   Scissors,
   Layers,
-  ArrowRight,
+  Tv,
+  Smartphone,
 } from 'lucide-react';
-import { SAMPLE_VIDEOS } from '../data/samples';
-import { SampleVideoItem } from '../types';
 
 interface VideoInputSectionProps {
   onAnalyzeUrl: (url: string, nicho?: string) => void;
   onAnalyzeFile: (file: File, state: 'CRUDO' | 'EDITADO', nicho?: string) => void;
-  onSelectSample: (sample: SampleVideoItem) => void;
   isAnalyzing: boolean;
   analyzingStep: string;
 }
@@ -25,11 +21,10 @@ interface VideoInputSectionProps {
 export const VideoInputSection: React.FC<VideoInputSectionProps> = ({
   onAnalyzeUrl,
   onAnalyzeFile,
-  onSelectSample,
   isAnalyzing,
   analyzingStep,
 }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'samples'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'url'>('upload');
   const [urlInput, setUrlInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -75,50 +70,41 @@ export const VideoInputSection: React.FC<VideoInputSectionProps> = ({
       <div className="text-center space-y-1">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] sm:text-xs font-semibold">
           <Sparkles className="w-3 h-3 text-violet-400" />
-          <span>Auditoría de Retención</span>
+          <span>Auditoría de Retención & Algoritmo</span>
         </div>
         <h2 className="text-xl sm:text-3xl font-black tracking-tight text-white">
           Analiza tu Video
         </h2>
-        <p className="text-neutral-400 text-[11px] sm:text-xs max-w-sm mx-auto leading-tight sm:leading-normal">
-          Diagnóstico de retención 0-3s, fugas y zona segura móvil.
+        <p className="text-neutral-400 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+          Evalúa la retención, estructura visual y potencial de impacto para TikTok, Reels, Shorts o archivos locales.
         </p>
       </div>
 
-      {/* Tabs Selector */}
-      <div className="flex p-1 rounded-xl bg-neutral-900 border border-neutral-800 text-xs font-semibold">
+      {/* Tabs Selector: Subir vs Pegar Link */}
+      <div className="grid grid-cols-2 p-1 rounded-xl bg-neutral-900/90 border border-neutral-800/80 text-xs font-semibold">
         <button
           onClick={() => setActiveTab('upload')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-all ${
+          className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs transition-all min-h-[44px] ${
             activeTab === 'upload'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30 font-bold'
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
         >
-          <Upload className="w-3.5 h-3.5" />
-          <span>Subir</span>
+          <Upload className="w-4 h-4 shrink-0" />
+          <span className="sm:hidden">Subir Archivo</span>
+          <span className="hidden sm:inline">Subir Archivo de Galería</span>
         </button>
         <button
           onClick={() => setActiveTab('url')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-all ${
+          className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs transition-all min-h-[44px] ${
             activeTab === 'url'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30 font-bold'
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
         >
-          <Link className="w-3.5 h-3.5" />
-          <span>Pegar Link</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('samples')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-all ${
-            activeTab === 'samples'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
-              : 'text-neutral-400 hover:text-neutral-200'
-          }`}
-        >
-          <Flame className="w-3.5 h-3.5 text-amber-400" />
-          <span>Ejemplos</span>
+          <Link className="w-4 h-4 shrink-0" />
+          <span className="sm:hidden">Pegar Enlace</span>
+          <span className="hidden sm:inline">Enlace Social (TikTok/Reels/Shorts)</span>
         </button>
       </div>
 
@@ -285,58 +271,6 @@ export const VideoInputSection: React.FC<VideoInputSectionProps> = ({
               </>
             )}
           </button>
-        </div>
-      )}
-
-      {/* Tab: Samples */}
-      {activeTab === 'samples' && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {SAMPLE_VIDEOS.map((sample) => (
-              <div
-                key={sample.id}
-                onClick={() => onSelectSample(sample)}
-                className="group relative rounded-xl border border-neutral-800 bg-neutral-900/80 hover:border-violet-500/50 hover:bg-neutral-900 p-2.5 flex gap-2.5 cursor-pointer transition-all"
-              >
-                <div className={`relative ${sample.aspectRatio === '16:9' ? 'w-20 h-14' : 'w-14 h-18'} rounded-lg overflow-hidden shrink-0 bg-neutral-950 border border-neutral-800`}>
-                  <img
-                    src={sample.thumbnailUrl}
-                    alt={sample.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                    <Play className="w-4 h-4 text-white fill-white/80" />
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-between py-0.5 flex-1 min-w-0">
-                  <div>
-                    <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-                      <span
-                        className={`text-[8px] font-bold px-1 py-0.2 rounded ${
-                          sample.type === 'CRUDO'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                        }`}
-                      >
-                        {sample.type === 'CRUDO' ? 'Crudo' : 'Editado'}
-                      </span>
-                      <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">
-                        {sample.aspectRatio === '16:9' ? '16:9' : '9:16'}
-                      </span>
-                    </div>
-                    <h4 className="text-[11px] font-bold text-white group-hover:text-violet-300 transition-colors line-clamp-1">
-                      {sample.title}
-                    </h4>
-                  </div>
-                  <div className="flex items-center text-[9px] font-semibold text-violet-400 gap-1">
-                    <span>Auditar</span>
-                    <ArrowRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>

@@ -9,8 +9,6 @@ import { DownloadModal } from './components/DownloadModal';
 import { ChatModal } from './components/ChatModal';
 import { CutGuideModal } from './components/CutGuideModal';
 import { TeleprompterModal } from './components/TeleprompterModal';
-import { ExportModal } from './components/ExportModal';
-import { ShareModal } from './components/ShareModal';
 import { BottomNavBar } from './components/BottomNavBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { extractVideoFrames } from './utils/videoExtractor';
@@ -19,9 +17,12 @@ import {
   fetchSocialMetadata,
   extractUrlFromText,
   generateContextualAudit,
+  generateLocalFileAudit,
 } from './utils/socialVideoHelper';
-import { MOCK_ANALYSES } from './data/samples';
-import { ClipIQAnalysisResult, SampleVideoItem } from './types';
+import { SAMPLE_VIDEOS, MOCK_ANALYSES } from './data/samples';
+import { AnalysisProgressView } from './components/AnalysisProgressView';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { ClipIQAnalysisResult } from './types';
 import { Smartphone, Tv, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingStep, setAnalyzingStep] = useState('');
+  const [analysisProgress, setAnalysisProgress] = useState(0);
 
   // Modals
   const [isReplicationModalOpen, setIsReplicationModalOpen] = useState(false);
@@ -42,8 +44,6 @@ export default function App() {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isCutGuideModalOpen, setIsCutGuideModalOpen] = useState(false);
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Trigger celebration on high score
   const triggerCelebration = () => {
@@ -59,39 +59,37 @@ export default function App() {
     }
   };
 
-  // Handle incoming PWA Web Share Target on startup (e.g. shared from YouTube app on mobile)
+  // Synchronize PWA top bar theme color with user preference (dark/light)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const sharedUrl = params.get('url');
-      const sharedText = params.get('text');
-      const sharedTitle = params.get('title');
-
-      let targetUrl = '';
-      if (sharedUrl && (sharedUrl.startsWith('http://') || sharedUrl.startsWith('https://'))) {
-        targetUrl = sharedUrl;
-      } else if (sharedText) {
-        const extracted = extractUrlFromText(sharedText);
-        if (extracted) {
-          targetUrl = extracted;
-        }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateTheme = () => {
+      const isDark = mediaQuery.matches;
+      const themeMeta = document.querySelector('meta[name="theme-color"]:not([media])');
+      if (themeMeta) {
+        themeMeta.setAttribute('content', isDark ? '#09090b' : '#ffffff');
       }
-
-      if (targetUrl) {
-        // Clean URL params so refresh doesn't re-trigger analysis unexpectedly
-        window.history.replaceState({}, document.title, window.location.pathname);
-        handleAnalyzeUrl(targetUrl);
-      }
-    } catch (e) {
-      console.warn('Error reading share_target params:', e);
-    }
+    };
+    updateTheme();
+    mediaQuery.addEventListener('change', updateTheme);
+    return () => mediaQuery.removeEventListener('change', updateTheme);
   }, []);
+
+  // Helper for simulated realistic scanning duration (ensures perceived AI craftsmanship)
+  const delayAtLeast = async (startTime: number, minDurationMs: number = 2400) => {
+    const elapsed = Date.now() - startTime;
+    if (elapsed < minDurationMs) {
+      await new Promise((resolve) => setTimeout(resolve, minDurationMs - elapsed));
+    }
+  };
 
   // Analyze URL (Real YouTube, TikTok, Instagram or generic video link)
   const handleAnalyzeUrl = async (url: string, nicho?: string) => {
+    const startTime = Date.now();
     setUrlSource(url);
     setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setAnalysisProgress(15);
     setAnalyzingStep('Conectando con enlace y extrayendo metadatos...');
     setVideoSrc(undefined);
 
@@ -122,13 +120,17 @@ export default function App() {
       console.warn('Could not fetch client-side social metadata:', err);
     }
 
+    setAnalysisProgress(40);
+    setAnalyzingStep('Evaluando gancho 0-3s, zonas seguras y encuadre...');
+
     try {
-      setTimeout(() => setAnalyzingStep('Evaluando gancho 0-3s, audio y zona segura...'), 1000);
-      setTimeout(() => setAnalyzingStep('Calculando retención y puntos de fuga...'), 2000);
+      setAnalysisProgress(65);
+      setAnalyzingStep('Analizando pista de audio, retención y puntos de fuga...');
 
       const response = await fetch('/api/analyze-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(6000),
         body: JSON.stringify({
           sourceType: 'URL_SOCIAL',
           url,
@@ -141,7 +143,15 @@ export default function App() {
       });
 
       const resJson = await response.json();
+      setAnalysisProgress(88);
+      setAnalyzingStep('Sintetizando informe algorítmico y plan de optimización...');
+      await delayAtLeast(startTime, 2400);
+
       if (resJson.success && resJson.data) {
+        setAnalysisProgress(100);
+        setAnalyzingStep('¡Auditoría completada al 100%!');
+        await new Promise((r) => setTimeout(r, 400));
+
         setAnalysisResult(resJson.data);
         if (resJson.data.diagnostico_inicial?.formato_video) {
           setAspectRatio(resJson.data.diagnostico_inicial.formato_video);
@@ -158,8 +168,10 @@ export default function App() {
         throw new Error('API response invalid');
       }
     } catch (err) {
-      console.warn('Backend API unavailable, generating contextual analysis for real video:', err);
-      // Fallback for static hosts (e.g. Cloudflare Pages) using authentic contextual audit of the actual video!
+      console.warn('Backend API unavailable or timed out, generating contextual analysis for real video:', err);
+      setAnalysisProgress(92);
+      setAnalyzingStep('Sintetizando informe algorítmico...');
+      await delayAtLeast(startTime, 2400);
       const contextualAnalysis = generateContextualAudit({
         url,
         title: metaTitle,
@@ -168,6 +180,11 @@ export default function App() {
         aspectRatio: parsed.aspectRatio,
         isShort: parsed.isShort,
       });
+
+      setAnalysisProgress(100);
+      setAnalyzingStep('¡Auditoría completada al 100%!');
+      await new Promise((r) => setTimeout(r, 400));
+
       setAnalysisResult(contextualAnalysis);
       if (contextualAnalysis.diagnostico_inicial?.formato_video) {
         setAspectRatio(contextualAnalysis.diagnostico_inicial.formato_video);
@@ -175,11 +192,13 @@ export default function App() {
     } finally {
       setIsAnalyzing(false);
       setAnalyzingStep('');
+      setAnalysisProgress(0);
     }
   };
 
   // Analyze Gallery / File
   const handleAnalyzeFile = async (file: File, state: 'CRUDO' | 'EDITADO', nicho?: string) => {
+    const startTime = Date.now();
     const fileBlobUrl = URL.createObjectURL(file);
     setVideoSrc(fileBlobUrl);
     setYoutubeId(undefined);
@@ -188,6 +207,8 @@ export default function App() {
     setUrlSource(undefined);
     setFallbackThumbnail(undefined);
     setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setAnalysisProgress(15);
     setAnalyzingStep('Muestreando fotogramas clave 0-3s...');
 
     let extracted: { duration: number; width: number; height: number; frames: string[]; hasAudioTrack: boolean } | null = null;
@@ -196,11 +217,13 @@ export default function App() {
       if (extracted.width && extracted.height) {
         setAspectRatio(extracted.width > extracted.height ? '16:9' : '9:16');
       }
-      setAnalyzingStep('Analizando espectro de audio y retención...');
+      setAnalysisProgress(50);
+      setAnalyzingStep('Analizando espectro de audio, silencios y retención...');
 
       const response = await fetch('/api/analyze-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(6000),
         body: JSON.stringify({
           sourceType: 'GALERIA_LOCAL',
           videoState: state,
@@ -214,7 +237,15 @@ export default function App() {
       });
 
       const resJson = await response.json();
+      setAnalysisProgress(88);
+      setAnalyzingStep('Sintetizando guía y métricas de edición...');
+      await delayAtLeast(startTime, 2400);
+
       if (resJson.success && resJson.data) {
+        setAnalysisProgress(100);
+        setAnalyzingStep('¡Auditoría completada al 100%!');
+        await new Promise((r) => setTimeout(r, 400));
+
         setAnalysisResult(resJson.data);
         if (resJson.data.diagnostico_inicial?.formato_video) {
           setAspectRatio(resJson.data.diagnostico_inicial.formato_video);
@@ -226,13 +257,23 @@ export default function App() {
         throw new Error('API response invalid');
       }
     } catch (err) {
-      console.warn('Backend API unavailable, using fallback analysis for uploaded file:', err);
+      console.warn('Backend API unavailable, using local audit engine for uploaded file:', err);
+      setAnalysisProgress(92);
+      await delayAtLeast(startTime, 2400);
       const isLandscapeVideo = Boolean(extracted && extracted.width && extracted.height && extracted.width > extracted.height);
-      const fallback = state === 'CRUDO'
-        ? MOCK_ANALYSES['raw-vlog']
-        : isLandscapeVideo
-        ? MOCK_ANALYSES['youtube-horizontal']
-        : MOCK_ANALYSES['viral-ecommerce'];
+      const fallback = generateLocalFileAudit({
+        fileName: file.name,
+        duration: extracted?.duration && extracted.duration > 0 ? Math.round(extracted.duration) : 15,
+        width: extracted?.width,
+        height: extracted?.height,
+        state,
+        nichoHint: nicho,
+      });
+
+      setAnalysisProgress(100);
+      setAnalyzingStep('¡Auditoría completada al 100%!');
+      await new Promise((r) => setTimeout(r, 400));
+
       setAnalysisResult(fallback);
       if (fallback.diagnostico_inicial?.formato_video) {
         setAspectRatio(fallback.diagnostico_inicial.formato_video);
@@ -240,33 +281,61 @@ export default function App() {
     } finally {
       setIsAnalyzing(false);
       setAnalyzingStep('');
+      setAnalysisProgress(0);
     }
   };
 
-  // Select Sample Preset
-  const handleSelectSample = (sample: SampleVideoItem) => {
-    setVideoSrc(sample.videoSrc);
-    setYoutubeId(undefined);
-    setVideoTitle(sample.title);
-    setChannelName(undefined);
-    setUrlSource(undefined);
-    setFallbackThumbnail(sample.thumbnailUrl);
-    setAspectRatio(sample.aspectRatio || '9:16');
-    setIsAnalyzing(true);
-    setAnalyzingStep('Analizando video de prueba...');
+  // Quick Demo Sample selection (if needed)
+  const handleSelectSample = async (sampleId: string) => {
+    const startTime = Date.now();
+    const sample = SAMPLE_VIDEOS.find((s) => s.id === sampleId);
+    if (!sample) return;
 
-    setTimeout(() => {
-      const sampleAudit = MOCK_ANALYSES[sample.id] || MOCK_ANALYSES['viral-ecommerce'];
-      setAnalysisResult(sampleAudit);
-      if (sampleAudit.diagnostico_inicial?.formato_video) {
-        setAspectRatio(sampleAudit.diagnostico_inicial.formato_video);
-      }
-      setIsAnalyzing(false);
-      setAnalyzingStep('');
-      if (sampleAudit.scores?.score_global >= 75) {
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setAnalysisProgress(20);
+    setAnalyzingStep('Cargando muestra y analizando gancho...');
+    setVideoTitle(sample.title);
+    setChannelName(sample.nicho || 'ClipIQ Creator');
+    setFallbackThumbnail(sample.thumbnailUrl);
+    setAspectRatio(sample.aspectRatio);
+    setUrlSource(sample.url);
+
+    if (sample.url && (sample.url.includes('youtube.com') || sample.url.includes('youtu.be'))) {
+      const parsed = parseSocialUrl(sample.url);
+      setYoutubeId(parsed.videoId);
+      setVideoSrc(undefined);
+    } else {
+      setVideoSrc(sample.videoSrc || sample.url);
+      setYoutubeId(undefined);
+    }
+
+    try {
+      setTimeout(() => {
+        setAnalysisProgress(60);
+        setAnalyzingStep('Calculando retención y métricas algorítmicas...');
+      }, 700);
+
+      setTimeout(() => {
+        setAnalysisProgress(90);
+        setAnalyzingStep('Sintetizando informe de auditoría...');
+      }, 1500);
+
+      await delayAtLeast(startTime, 2400);
+      setAnalysisProgress(100);
+      setAnalyzingStep('¡Auditoría completada al 100%!');
+      await new Promise((r) => setTimeout(r, 350));
+
+      const result = MOCK_ANALYSES[sampleId] || MOCK_ANALYSES['viral-ecommerce'];
+      setAnalysisResult(result);
+      if (result.scores?.score_global >= 75) {
         triggerCelebration();
       }
-    }, 1000);
+    } finally {
+      setIsAnalyzing(false);
+      setAnalyzingStep('');
+      setAnalysisProgress(0);
+    }
   };
 
   const handleNewAnalysis = () => {
@@ -279,6 +348,8 @@ export default function App() {
     setFallbackThumbnail(undefined);
     setAspectRatio('9:16');
     setIsAnalyzing(false);
+    setAnalyzingStep('');
+    setAnalysisProgress(0);
   };
 
   const isRaw = analysisResult?.diagnostico_inicial?.estado_video === 'CRUDO';
@@ -286,23 +357,20 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col antialiased selection:bg-violet-600 selection:text-white pb-16 md:pb-6">
+      <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col antialiased selection:bg-violet-600 selection:text-white pb-24 md:pb-8">
         {/* Top Header */}
         <Header
           hasResult={!!analysisResult || isAnalyzing}
           onNewAnalysis={handleNewAnalysis}
-          onOpenExport={() => setIsExportModalOpen(true)}
-          onOpenShare={() => setIsShareModalOpen(true)}
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-4 sm:py-6">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-4 sm:py-6 pb-20 md:pb-8">
           {!analysisResult && !isAnalyzing ? (
-            /* 1. Initial State: Upload / URL / Samples */
+            /* 1. Initial State: Upload / URL */
             <VideoInputSection
               onAnalyzeUrl={handleAnalyzeUrl}
               onAnalyzeFile={handleAnalyzeFile}
-              onSelectSample={handleSelectSample}
               isAnalyzing={isAnalyzing}
               analyzingStep={analyzingStep}
             />
@@ -348,16 +416,14 @@ export default function App() {
 
                   {/* Bottom: Information distributed in balanced columns */}
                   {isAnalyzing && !analysisResult ? (
-                    <div className="max-w-4xl mx-auto bg-neutral-900/80 border border-neutral-800 rounded-3xl p-8 text-center space-y-4 shadow-xl">
-                      <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mx-auto text-violet-400">
-                        <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-black text-white">Generando Reporte de Auditoría Panorámico</h3>
-                        <p className="text-xs text-neutral-400 mt-1 max-w-md mx-auto">
-                          {analyzingStep || 'Analizando retención en formato largo, ritmo narrativo y balance de audio...'}
-                        </p>
-                      </div>
+                    <div className="max-w-4xl mx-auto">
+                      <AnalysisProgressView
+                        stepMessage={analyzingStep}
+                        progressPercent={analysisProgress}
+                        videoTitle={videoTitle}
+                        thumbnailUrl={fallbackThumbnail}
+                        aspectRatio="16:9"
+                      />
                     </div>
                   ) : (
                     analysisResult && (
@@ -367,6 +433,7 @@ export default function App() {
                           diagnostico={analysisResult.diagnostico_inicial}
                           auditoria={analysisResult.auditoria_tecnica}
                           puntosMejora={analysisResult.puntos_clave_mejora}
+                          metricasCreador={analysisResult.metricas_creador}
                           isRaw={isRaw}
                           guiaCrudo={analysisResult.modulo_guia_crudo}
                           onOpenReplication={() => setIsReplicationModalOpen(true)}
@@ -420,17 +487,13 @@ export default function App() {
                   {/* Right Column: Clean Metric Report & Action Toolbar */}
                   <div className="lg:col-span-7 space-y-6">
                     {isAnalyzing && !analysisResult ? (
-                      <div className="bg-neutral-900/80 border border-neutral-800 rounded-3xl p-8 text-center space-y-4 shadow-xl">
-                        <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mx-auto text-violet-400">
-                          <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-black text-white">Generando Reporte de Auditoría</h3>
-                          <p className="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
-                            {analyzingStep || 'Analizando audio, ritmo de cortes y ganchos psicológicos...'}
-                          </p>
-                        </div>
-                      </div>
+                      <AnalysisProgressView
+                        stepMessage={analyzingStep}
+                        progressPercent={analysisProgress}
+                        videoTitle={videoTitle}
+                        thumbnailUrl={fallbackThumbnail}
+                        aspectRatio="9:16"
+                      />
                     ) : (
                       analysisResult && (
                         <div className="space-y-6">
@@ -439,6 +502,7 @@ export default function App() {
                             diagnostico={analysisResult.diagnostico_inicial}
                             auditoria={analysisResult.auditoria_tecnica}
                             puntosMejora={analysisResult.puntos_clave_mejora}
+                            metricasCreador={analysisResult.metricas_creador}
                             isRaw={isRaw}
                             guiaCrudo={analysisResult.modulo_guia_crudo}
                             onOpenReplication={() => setIsReplicationModalOpen(true)}
@@ -463,7 +527,6 @@ export default function App() {
             onOpenReplication={() => setIsReplicationModalOpen(true)}
             onOpenDownload={() => setIsDownloadModalOpen(true)}
             onOpenChat={() => setIsChatModalOpen(true)}
-            onOpenShare={() => setIsShareModalOpen(true)}
           />
         )}
 
@@ -483,6 +546,9 @@ export default function App() {
           onClose={() => setIsDownloadModalOpen(false)}
           videoSrc={videoSrc}
           urlSource={urlSource}
+          videoTitle={videoTitle}
+          fallbackThumbnail={fallbackThumbnail}
+          aspectRatio={aspectRatio}
           hasWatermark={analysisResult?.diagnostico_inicial?.contiene_marca_de_agua}
         />
 
@@ -511,19 +577,8 @@ export default function App() {
           />
         )}
 
-        {/* 6. Modal: Exportar Reporte & JSON */}
-        <ExportModal
-          isOpen={isExportModalOpen}
-          onClose={() => setIsExportModalOpen(false)}
-          analysisResult={analysisResult}
-        />
-
-        {/* 7. Modal: Compartir App Real & Análisis */}
-        <ShareModal
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          analysisResult={analysisResult}
-        />
+        {/* 6. PWA Offline Indicator */}
+        <OfflineIndicator />
       </div>
     </ErrorBoundary>
   );

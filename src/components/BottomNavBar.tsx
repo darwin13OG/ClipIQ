@@ -4,7 +4,6 @@ import {
   Zap,
   Download,
   MessageSquare,
-  Share2,
 } from 'lucide-react';
 
 interface BottomNavBarProps {
@@ -12,7 +11,6 @@ interface BottomNavBarProps {
   onOpenReplication: () => void;
   onOpenDownload: () => void;
   onOpenChat: () => void;
-  onOpenShare: () => void;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
@@ -20,52 +18,46 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   onOpenReplication,
   onOpenDownload,
   onOpenChat,
-  onOpenShare,
 }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-neutral-950/90 backdrop-blur-xl border-t border-neutral-800/80 px-2 py-1.5 md:hidden">
-      <div className="max-w-md mx-auto flex items-center justify-around">
+    <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-1 pointer-events-none md:hidden">
+      <nav className="max-w-md mx-auto pointer-events-auto bg-neutral-900/95 backdrop-blur-2xl border border-neutral-800 shadow-2xl rounded-2xl p-1.5 flex items-center justify-around gap-1.5">
+        {/* Auditoría */}
         <button
           onClick={onScrollToTop}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-violet-400 hover:text-violet-300 font-bold transition-all"
+          className="flex-1 flex flex-col items-center justify-center py-2 px-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800/60 active:scale-95 transition-all"
         >
-          <BarChart3 className="w-5 h-5" />
-          <span className="text-[10px]">Auditoría</span>
+          <BarChart3 className="w-4 h-4 text-violet-400 mb-1" />
+          <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap">Reporte</span>
         </button>
 
+        {/* Replicar */}
         <button
           onClick={onOpenReplication}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-neutral-400 hover:text-violet-300 font-semibold transition-all"
+          className="flex-1 flex flex-col items-center justify-center py-2 px-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800/60 active:scale-95 transition-all"
         >
-          <Zap className="w-5 h-5 fill-current" />
-          <span className="text-[10px]">Replicar</span>
+          <Zap className="w-4 h-4 text-amber-400 fill-current mb-1" />
+          <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap">Replicar</span>
         </button>
 
+        {/* Descargar (Destacado) */}
         <button
           onClick={onOpenDownload}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-all"
+          className="flex-1 flex flex-col items-center justify-center py-2 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 active:scale-95 transition-all shadow-sm"
         >
-          <Download className="w-5 h-5" />
-          <span className="text-[10px]">Descargar</span>
+          <Download className="w-4 h-4 text-emerald-400 mb-1" />
+          <span className="text-[10px] font-bold tracking-wide whitespace-nowrap">Descargar</span>
         </button>
 
+        {/* Chat IA */}
         <button
           onClick={onOpenChat}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-neutral-400 hover:text-white transition-all"
+          className="flex-1 flex flex-col items-center justify-center py-2 px-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800/60 active:scale-95 transition-all"
         >
-          <MessageSquare className="w-5 h-5" />
-          <span className="text-[10px]">Chat IA</span>
+          <MessageSquare className="w-4 h-4 text-cyan-400 mb-1" />
+          <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap">Chat IA</span>
         </button>
-
-        <button
-          onClick={onOpenShare}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-cyan-400 hover:text-cyan-300 font-bold transition-all"
-        >
-          <Share2 className="w-5 h-5" />
-          <span className="text-[10px]">Compartir</span>
-        </button>
-      </div>
+      </nav>
     </div>
   );
 };
-

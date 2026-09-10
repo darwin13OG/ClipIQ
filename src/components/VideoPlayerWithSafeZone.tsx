@@ -32,6 +32,7 @@ interface VideoPlayerProps {
   isAnalyzing?: boolean;
   analyzingStep?: string;
   aspectRatio?: '9:16' | '16:9';
+  detectedPlatform?: string;
   onFormatChange?: (ratio: '9:16' | '16:9') => void;
 }
 
@@ -46,6 +47,7 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
   isAnalyzing,
   analyzingStep,
   aspectRatio = '9:16',
+  detectedPlatform,
   onFormatChange,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -53,7 +55,25 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(30);
   const [showSafeZone, setShowSafeZone] = useState(false);
-  const [platformOverlay, setPlatformOverlay] = useState<'tiktok' | 'reels' | 'shorts'>('tiktok');
+
+  // Derive initial overlay based on detected platform
+  const initialOverlay = () => {
+    if (detectedPlatform === 'reels' || detectedPlatform === 'instagram') return 'reels';
+    if (detectedPlatform === 'shorts') return 'shorts';
+    return 'tiktok';
+  };
+
+  const [platformOverlay, setPlatformOverlay] = useState<'tiktok' | 'reels' | 'shorts'>(initialOverlay);
+
+  useEffect(() => {
+    if (detectedPlatform === 'reels' || detectedPlatform === 'instagram') {
+      setPlatformOverlay('reels');
+    } else if (detectedPlatform === 'shorts') {
+      setPlatformOverlay('shorts');
+    } else if (detectedPlatform === 'tiktok') {
+      setPlatformOverlay('tiktok');
+    }
+  }, [detectedPlatform]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -147,32 +167,49 @@ export const VideoPlayerWithSafeZone: React.FC<VideoPlayerProps> = ({
         {/* Network Preset / Format indicator */}
         <div className="flex items-center gap-1">
           {!isLandscape ? (
-            <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-xl p-1">
-              <button
-                onClick={() => setPlatformOverlay('tiktok')}
-                className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
-                  platformOverlay === 'tiktok' ? 'bg-neutral-800 text-cyan-300 border border-cyan-500/30' : 'text-neutral-400 hover:text-neutral-200'
-                }`}
-              >
-                TikTok
-              </button>
-              <button
-                onClick={() => setPlatformOverlay('reels')}
-                className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
-                  platformOverlay === 'reels' ? 'bg-neutral-800 text-pink-300 border border-pink-500/30' : 'text-neutral-400 hover:text-neutral-200'
-                }`}
-              >
-                Reels
-              </button>
-              <button
-                onClick={() => setPlatformOverlay('shorts')}
-                className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
-                  platformOverlay === 'shorts' ? 'bg-neutral-800 text-red-300 border border-red-500/30' : 'text-neutral-400 hover:text-neutral-200'
-                }`}
-              >
-                Shorts
-              </button>
-            </div>
+            detectedPlatform === 'reels' || detectedPlatform === 'instagram' ? (
+              <div className="px-2.5 py-1 rounded-xl bg-pink-500/15 border border-pink-500/30 text-pink-300 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                <span>Reel</span>
+              </div>
+            ) : detectedPlatform === 'tiktok' ? (
+              <div className="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                <span>TikTok</span>
+              </div>
+            ) : detectedPlatform === 'shorts' ? (
+              <div className="px-2.5 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                <span>Shorts</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-xl p-1">
+                <button
+                  onClick={() => setPlatformOverlay('tiktok')}
+                  className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
+                    platformOverlay === 'tiktok' ? 'bg-neutral-800 text-cyan-300 border border-cyan-500/30' : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  TikTok
+                </button>
+                <button
+                  onClick={() => setPlatformOverlay('reels')}
+                  className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
+                    platformOverlay === 'reels' ? 'bg-neutral-800 text-pink-300 border border-pink-500/30' : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  Reels
+                </button>
+                <button
+                  onClick={() => setPlatformOverlay('shorts')}
+                  className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
+                    platformOverlay === 'shorts' ? 'bg-neutral-800 text-red-300 border border-red-500/30' : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  Shorts
+                </button>
+              </div>
+            )
           ) : (
             <div className="px-2.5 py-1 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-300 font-bold text-[11px] flex items-center gap-1">
               <Tv className="w-3.5 h-3.5 text-violet-400" />

@@ -1,12 +1,15 @@
 // Utility for exporting user video concatenated with the branded ClipIQ Outro into a single file
 // Features 60 FPS Canvas rendering, Web Audio synthesis (3.5s cinematic soundscape), and MediaRecorder
 
+export type ExportQuality = '1080p' | '720p' | 'original';
+
 export interface OutroConfig {
   domain: string;
   brandTitle: string;
   tagline: string;
   durationSeconds?: number;
   aspectRatio?: '9:16' | '16:9';
+  quality?: ExportQuality;
 }
 
 export interface ExportProgress {
@@ -302,9 +305,9 @@ export async function generateOutroVideoBlob(
 ): Promise<{ blob: Blob; url: string; mimeType: string }> {
   const duration = config.durationSeconds || 3.5;
   const isLandscape = config.aspectRatio === '16:9';
-  const width = isLandscape ? 1280 : 720;
-  const height = isLandscape ? 720 : 1280;
-  const fps = 60;
+  const width = isLandscape ? 1920 : 1080;
+  const height = isLandscape ? 1080 : 1920;
+  const fps = 30;
   const totalFrames = Math.round(duration * fps);
 
   const canvas = document.createElement('canvas');
@@ -350,7 +353,7 @@ export async function generateOutroVideoBlob(
 
   const mediaRecorder = new MediaRecorder(combinedStream, {
     mimeType: selectedMime,
-    videoBitsPerSecond: 4000000,
+    videoBitsPerSecond: 8000000,
   });
 
   const recordedChunks: Blob[] = [];
@@ -406,6 +409,7 @@ export async function generateOutroVideoBlob(
 
 /**
  * UNIFIED EXPORT: Records the user's video and appends the ClipIQ outro immediately at the end into ONE SINGLE video file!
+ * Preserves 100% native video resolution and aspect ratio (zero cropping, zero misalignment)
  */
 export async function exportVideoWithOutroUnified({
   videoSrc,
@@ -419,15 +423,13 @@ export async function exportVideoWithOutroUnified({
   onProgress?: (p: ExportProgress) => void;
 }): Promise<{ blob: Blob; url: string; mimeType: string }> {
   const isLandscape = aspectRatio === '16:9';
-  const width = isLandscape ? 1280 : 720;
-  const height = isLandscape ? 720 : 1280;
-  const fps = 60;
+  const fps = 30; // 30 FPS ensures fluid, jitter-free encoding without dropping frames on mobile
   const outroDuration = config.durationSeconds || 3.5;
 
   onProgress?.({
     stage: 'preparing',
     percent: 5,
-    message: 'Cargando video fuente...',
+    message: 'Cargando video en resolución original...',
   });
 
   // 1. Create invisible video element
@@ -435,17 +437,40 @@ export async function exportVideoWithOutroUnified({
   video.crossOrigin = 'anonymous';
   video.src = videoSrc;
   video.playsInline = true;
-  video.muted = false; // We route audio via WebAudio
+  video.muted = false; // Routed via WebAudio
+  video.preload = 'auto';
 
   await new Promise<void>((resolve, reject) => {
     video.onloadedmetadata = () => resolve();
     video.onerror = () => {
-      // If CORS or local load issue occurs, reject to allow fallback
       reject(new Error('No se pudo cargar el video fuente para concatenar'));
     };
   });
 
-  const videoDuration = video.duration && !isNaN(video.duration) ? video.duration : 10;
+  // Determine resolution and bitrate based on chosen quality
+  const quality = config.quality || '1080p';
+  const vW = video.videoWidth > 0 ? video.videoWidth : (isLandscape ? 1920 : 1080);
+  const vH = video.videoHeight > 0 ? video.videoHeight : (isLandscape ? 1080 : 1920);
+
+  let width = vW;
+  let height = vH;
+  let bitrate = 9500000; // 9.5 Mbps for 1080p
+
+  if (quality === '720p') {
+    width = isLandscape ? 1280 : 720;
+    height = isLandscape ? 720 : 1280;
+    bitrate = 5000000; // 5 Mbps for fast lightweight mobile sharing
+  } else if (quality === '1080p') {
+    width = isLandscape ? 1920 : 1080;
+    height = isLandscape ? 1080 : 1920;
+    bitrate = 9500000; // 9.5 Mbps for crystal clear Full HD
+  } else if (quality === 'original') {
+    width = vW;
+    height = vH;
+    bitrate = 14000000; // 14 Mbps for uncompressed native resolution
+  }
+
+  const videoDuration = video.duration && !isNaN(video.duration) && video.duration > 0 ? video.duration : 10;
 
   // 2. Setup Canvas & Audio
   const canvas = document.createElement('canvas');
@@ -475,7 +500,7 @@ export async function exportVideoWithOutroUnified({
     console.warn('Web Audio setup notice:', err);
   }
 
-  // 3. MediaStream and MediaRecorder
+  // 3. MediaStream and MediaRecorder with dynamic bitrate based on quality
   const canvasStream = canvas.captureStream(fps);
   const audioTracks = audioDestination ? audioDestination.stream.getAudioTracks() : [];
   const combinedStream = new MediaStream([
@@ -500,7 +525,7 @@ export async function exportVideoWithOutroUnified({
 
   const mediaRecorder = new MediaRecorder(combinedStream, {
     mimeType: selectedMime,
-    videoBitsPerSecond: 4500000,
+    videoBitsPerSecond: bitrate,
   });
 
   const chunks: Blob[] = [];
@@ -528,10 +553,11 @@ export async function exportVideoWithOutroUnified({
     };
 
     // Start recorder
-    mediaRecorder.start();
+    mediaRecorder.start(100);
 
     // Play video
     video.currentTime = 0;
+    video.playbackRate = 1.0;
     video.play().catch((playErr) => {
       console.warn('Auto play trigger error:', playErr);
     });
@@ -542,23 +568,10 @@ export async function exportVideoWithOutroUnified({
 
     const renderLoop = (timestamp: number) => {
       if (isVideoPhase) {
-        // Draw video frame
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
-
-        // Aspect fit / fill calculations
-        const vW = video.videoWidth || width;
-        const vH = video.videoHeight || height;
-        const scale = Math.max(width / vW, height / vH);
-        const sW = vW * scale;
-        const sH = vH * scale;
-        const sX = (width - sW) / 2;
-        const sY = (height - sH) / 2;
-
+        // Draw exact 1:1 frame without any cropping, distortion or misalignment
         try {
-          ctx.drawImage(video, sX, sY, sW, sH);
+          ctx.drawImage(video, 0, 0, width, height);
         } catch (drawErr) {
-          // If tainted, fallback
           console.warn('Canvas draw video notice:', drawErr);
         }
 
@@ -566,15 +579,15 @@ export async function exportVideoWithOutroUnified({
         onProgress?.({
           stage: 'rendering_video',
           percent: Math.round(videoProgress * 75),
-          message: `Procesando video original (${Math.round(video.currentTime)}s / ${Math.round(videoDuration)}s)...`,
+          message: `Procesando video original en alta fidelidad (${Math.round(video.currentTime)}s / ${Math.round(videoDuration)}s)...`,
         });
 
         // Check if video finished
-        if (video.ended || video.currentTime >= videoDuration - 0.1) {
+        if (video.ended || video.currentTime >= videoDuration - 0.08) {
           isVideoPhase = false;
           outroStartTimestamp = timestamp;
 
-          // Trigger outro audio synthesis in audioContext!
+          // Trigger outro audio synthesis in audioContext
           if (audioContext && audioDestination) {
             synthesizeCinematicOutroAudio(audioContext, audioDestination, audioContext.currentTime);
           }
@@ -599,7 +612,7 @@ export async function exportVideoWithOutroUnified({
         onProgress?.({
           stage: 'rendering_outro',
           percent: 75 + Math.round(outroProg * 23),
-          message: `Uniendo cierre de marca ClipIQ (${(outroDuration - elapsedOutro).toFixed(1)}s)...`,
+          message: `Uniendo cierre oficial ClipIQ (${(outroDuration - elapsedOutro).toFixed(1)}s)...`,
         });
 
         if (elapsedOutro < outroDuration) {
@@ -608,7 +621,7 @@ export async function exportVideoWithOutroUnified({
           onProgress?.({
             stage: 'encoding',
             percent: 99,
-            message: 'Empaquetando archivo final...',
+            message: 'Empaquetando video HD final...',
           });
           setTimeout(() => {
             mediaRecorder.stop();

@@ -145,6 +145,54 @@ export const MOCK_ANALYSES: Record<string, ClipIQAnalysisResult> = {
       '¿Cómo adapto este guion para un video de 15 segundos exactos?',
       '¿Qué canciones en tendencia de TikTok combinan con este ritmo rápido?',
     ],
+    metricas_creador: {
+      retencion_30s_estimada: {
+        porcentaje: 78,
+        benchmark_nicho: 56,
+        veredicto: 'Supera el benchmark por +22%: la promesa rápida y cortes visuales en los primeros 4s blindan la atención.',
+      },
+      swipe_ratio_estimado: {
+        porcentaje_visto: 82,
+        porcentaje_deslizado: 18,
+        diagnostico: 'Excelente ratio de retención temprana: más del 80% supera los primeros 3 segundos sin deslizar.',
+      },
+      ctr_estimado: {
+        porcentaje: 9.8,
+        titulos_ab_testing: [
+          { enfoque: 'Curiosidad / Gap Mental', titulo: 'Probé este gadget viral por 7 días y pasó esto...' },
+          { enfoque: 'Beneficio Directo', titulo: 'El gadget que me ahorra 2 horas al día en e-commerce' },
+          { enfoque: 'Advertencia / Error', titulo: 'No compres este gadget viral sin ver esto antes' },
+        ],
+      },
+      dinamismo_visual: {
+        segundos_por_cambio_visual: 1.9,
+        cadencia_habla_wpm: 168,
+        calificacion_ritmo: 'Óptimo',
+        pausas_muertas_detectadas_segundos: 0.1,
+      },
+      indice_guardados_compartidos: {
+        potencial_guardado: 'Alto',
+        potencial_compartido: 'Alto',
+        motivo_algoritmico: 'El valor práctico del gadget incita a guardar el video para compras futuras o mandarlo a conocidos.',
+        segundo_micro_compromiso: '00:07',
+      },
+      audio_y_musica: {
+        tipo_voz: 'Voz energética y rápida con buena compresión y cero reverberación.',
+        db_fondo_recomendado: '-22 dB',
+        requiere_trending_audio: true,
+        sugerencia_musical: 'Tech House / Phonk Viral a 128 BPM con SFX pop en cada corte.',
+      },
+      estrategia_loop_viral: {
+        es_loop_infinito: true,
+        frase_conexion_loop: 'Y por eso el mayor secreto de todos es...',
+      },
+      brand_safety_monetizacion: {
+        apto_monetizacion: true,
+        clasificacion: 'Apto Todo Público',
+        detalles: '100% apto para TikTok Creator Rewards y Reels monetizados.',
+      },
+      palabras_clave_seo: ['Gadgets', 'TikTokMadeMeBuyIt', 'E-commerce', 'Tech', 'ReviewViral'],
+    },
   },
   'youtube-horizontal': {
     meta_app: {
@@ -226,6 +274,54 @@ export const MOCK_ANALYSES: Record<string, ClipIQAnalysisResult> = {
       '¿Cómo diseño una miniatura con alto CTR para este tema?',
       '¿Qué ganchos narrativos funcionan mejor para retener en los primeros 30 segundos en YouTube?',
     ],
+    metricas_creador: {
+      retencion_30s_estimada: {
+        porcentaje: 84,
+        benchmark_nicho: 62,
+        veredicto: 'Excelente retención de inicio: la claridad de propuesta técnica genera alta fidelidad en los primeros 60 segundos.',
+      },
+      swipe_ratio_estimado: {
+        porcentaje_visto: 89,
+        porcentaje_deslizado: 11,
+        diagnostico: 'CTR y retención inicial sobresalientes para YouTube: el 89% no abandona tras la intro.',
+      },
+      ctr_estimado: {
+        porcentaje: 8.6,
+        titulos_ab_testing: [
+          { enfoque: 'Curiosidad / Herramienta Secreta', titulo: 'Esta herramienta gratuita debería ser ilegal (Mi Setup)' },
+          { enfoque: 'Productividad / Tiempo Ahorrado', titulo: 'Cómo ahorré 10 horas de trabajo a la semana con este flujo' },
+          { enfoque: 'Comparativa Técnica', titulo: 'Dejé de usar software caro y me pasé a esto (Resultados reales)' },
+        ],
+      },
+      dinamismo_visual: {
+        segundos_por_cambio_visual: 5.4,
+        cadencia_habla_wpm: 142,
+        calificacion_ritmo: 'Óptimo',
+        pausas_muertas_detectadas_segundos: 0.2,
+      },
+      indice_guardados_compartidos: {
+        potencial_guardado: 'Alto',
+        potencial_compartido: 'Alto',
+        motivo_algoritmico: 'Video tipo tutorial de referencia que desarrolladores guardan en listas de reproducción para consultar.',
+        segundo_micro_compromiso: '01:15',
+      },
+      audio_y_musica: {
+        tipo_voz: 'Voz tipo broadcast con micrófono condensador, ecualización nítida y rango dinámico controlado.',
+        db_fondo_recomendado: '-24 dB',
+        requiere_trending_audio: false,
+        sugerencia_musical: 'Synthwave sutil / Lo-Fi Beats sin distracción vocal.',
+      },
+      estrategia_loop_viral: {
+        es_loop_infinito: false,
+        frase_conexion_loop: 'En el próximo video analizaremos la segunda parte de esta arquitectura.',
+      },
+      brand_safety_monetizacion: {
+        apto_monetizacion: true,
+        clasificacion: 'Apto Todo Público',
+        detalles: '100% apto para Google AdSense y patrocinadores de software.',
+      },
+      palabras_clave_seo: ['SetupTech', 'Productividad', 'DesarrolloWeb', 'SoftwareTools', 'Programacion'],
+    },
   },
   'raw-vlog': {
     meta_app: {
@@ -306,5 +402,182 @@ export const MOCK_ANALYSES: Record<string, ClipIQAnalysisResult> = {
       '¿Puedes escribir la voz en off exacta para los primeros 10 segundos?',
       '¿Cómo recorto los silencios usando CapCut o Premiere en 1 click?',
     ],
+    metricas_creador: {
+      retencion_30s_estimada: {
+        porcentaje: 38,
+        benchmark_nicho: 52,
+        veredicto: 'Bajo rendimiento por pausas iniciales: el 62% desliza antes de los 5 segundos sin ver la corrección.',
+      },
+      swipe_ratio_estimado: {
+        porcentaje_visto: 45,
+        porcentaje_deslizado: 55,
+        diagnostico: 'Fuga crítica inmediata: más de la mitad de los usuarios deslizan durante la pausa muda de 00:00 a 00:02.',
+      },
+      ctr_estimado: {
+        porcentaje: 6.4,
+        titulos_ab_testing: [
+          { enfoque: 'Alerta Lesión / Dolor', titulo: 'Por qué te duelen los hombros al entrenar press' },
+          { enfoque: 'Técnica Correcta', titulo: 'La técnica definitiva para hombros 3D sin dolor' },
+          { enfoque: 'Error Común', titulo: 'El fallo de novato que todos cometen en el gimnasio' },
+        ],
+      },
+      dinamismo_visual: {
+        segundos_por_cambio_visual: 8.5,
+        cadencia_habla_wpm: 110,
+        calificacion_ritmo: 'Poco Dinámico',
+        pausas_muertas_detectadas_segundos: 2.2,
+      },
+      indice_guardados_compartidos: {
+        potencial_guardado: 'Alto',
+        potencial_compartido: 'Medio',
+        motivo_algoritmico: 'El contenido educativo de fitness tiene alta tasa de guardado si se editan los silencios.',
+        segundo_micro_compromiso: '00:12',
+      },
+      audio_y_musica: {
+        tipo_voz: 'Voz cruda con eco de sala. Requiere reducción de ruido y ecualización vocal básica.',
+        db_fondo_recomendado: '-18 dB',
+        requiere_trending_audio: true,
+        sugerencia_musical: 'Gym Phonk / Dark Electronic para subir la energía percibida.',
+      },
+      estrategia_loop_viral: {
+        es_loop_infinito: true,
+        frase_conexion_loop: 'Así que la próxima vez que vayas a entrenar...',
+      },
+      brand_safety_monetizacion: {
+        apto_monetizacion: true,
+        clasificacion: 'Apto Todo Público',
+        detalles: 'Contenido deportivo familiar apto para todas las plataformas.',
+      },
+      palabras_clave_seo: ['Fitness', 'GymHacks', 'PressMilitar', 'Hombros', 'TutorialGym'],
+    },
+  },
+  'finance-reels': {
+    meta_app: {
+      app_name: 'ClipIQ',
+      domain: 'clipiq.pages.dev',
+      version: '2.0-enterprise',
+    },
+    diagnostico_inicial: {
+      fuente_detectada: 'URL_SOCIAL',
+      estado_video: 'EDITADO',
+      contiene_marca_de_agua: false,
+      tiene_audio_voz: true,
+      nicho_detectado: 'Finanzas Personales',
+      formato_video: '9:16',
+    },
+    scores: {
+      score_global: 89,
+      potencial_viral: 'Viral Garantizado',
+      hook_score: 95,
+      retencion_score: 86,
+    },
+    auditoria_tecnica: {
+      ritmo_cortes: 'Óptimo',
+      balance_audio: 'Excelente',
+      legibilidad_texto: 'Buena',
+      fuga_audiencia_estimada: {
+        segundo: '00:09',
+        motivo: 'Gráfico con letra pequeña durante 2 segundos; requiere simplificar números en pantalla.',
+      },
+    },
+    puntos_clave_mejora: [
+      'Aumenta el tamaño de los números del gráfico financiero un 25% para legibilidad móvil.',
+      'Añade un subtítulo dinámico con color verde (#10B981) en la palabra clave de ahorro.',
+      'Cierra con llamada a la acción pidiendo comentar "PRESUPUESTO" para automatizar el embudo.',
+    ],
+    modulo_guia_crudo: {
+      aplicable: false,
+      corta_en_segundos: [],
+      hook_sugerido_texto: '',
+      hook_sugerido_voz: '',
+      estilo_subtitulos: '',
+      musica_recomendada: '',
+    },
+    modulo_replicar_video: {
+      aplicable: true,
+      esqueleto_viral: {
+        gancho_0_3s: {
+          accion_camara: 'Muestra un billete o tarjeta y señálalo con gesto de alerta.',
+          texto_pantalla: 'LA REGLA 50/30/20 QUE TE HARÁ AHORRAR $10,000 💰',
+          audio_voz: 'Si tienes menos de 35 años y no conoces esta regla de ahorro, estás perdiendo dinero.',
+        },
+        cuerpo_3_15s: [
+          'Paso 1 (03-07s): Divide la pantalla en 3 bloques visuales de colores.',
+          'Paso 2 (08-11s): Da el ejemplo numérico concreto con un sueldo promedio.',
+          'Paso 3 (12-15s): Muestra la proyección a 1 año en una gráfica ascendente.',
+        ],
+        cta_final: {
+          texto_o_voz: 'Comenta "PLANTILLA" para recibir la hoja de cálculo automática en tus mensajes.',
+        },
+      },
+      publicacion_recomendada: {
+        titulo_viral: 'El Hábito Financiero que Deberías Aprender Antes de los 30 📈',
+        descripcion_seo: `Domina tus finanzas personales con la regla 50/30/20 explicada en 30 segundos. Deja de preguntarte a dónde se va tu sueldo cada mes.\n\n💬 Comenta "PLANTILLA" y te envío la calculadora automática.\n⚡ Analizado con ClipIQ (clipiq.pages.dev)\n\n#FinanzasPersonales #AhorroInteligente #Inversiones #EducacionFinanciera #ClipIQ`,
+        hashtags: ['#FinanzasPersonales', '#AhorroInteligente', '#Inversiones', '#EducacionFinanciera', '#ClipIQ'],
+        es_horizontal_o_youtube: false,
+        prompt_miniatura_ia: `Viral finance Reel & Shorts cover photo, professional creator holding tablet with glowing ascending green neon financial charts, modern minimalist studio, ultra high contrast, photorealistic 8k, --ar 9:16 --v 6.0`,
+      },
+    },
+    opciones_exportacion_v2: {
+      recomienda_limpiar_marca_agua: false,
+      configuracion_outro_clipiq: {
+        agregar_outro: true,
+        duracion_segundos: 2,
+        texto_branding: 'Analizado con ClipIQ | clipiq.pages.dev',
+      },
+    },
+    sugerencias_chat_interactivo: [
+      '¿Qué 3 ganchos alternativos puedo usar para finanzas e inversiones?',
+      '¿Cómo diseño un embudo de comentarios "PLANTILLA" en Instagram?',
+      '¿Qué música en tendencia de Reels encaja con finanzas y negocios?',
+    ],
+    metricas_creador: {
+      retencion_30s_estimada: {
+        porcentaje: 82,
+        benchmark_nicho: 58,
+        veredicto: 'Retención de élite: +24% sobre la media de finanzas por la promesa de beneficio económico tangible.',
+      },
+      swipe_ratio_estimado: {
+        porcentaje_visto: 86,
+        porcentaje_deslizado: 14,
+        diagnostico: 'Potencial de viralidad óptimo en Instagram Reels y TikTok: 86% de espectadores permanecen tras el segundo 3.',
+      },
+      ctr_estimado: {
+        porcentaje: 10.4,
+        titulos_ab_testing: [
+          { enfoque: 'Beneficio Directo / Cifra', titulo: 'Cómo ahorrar $1,000 al mes con la regla 50/30/20' },
+          { enfoque: 'Advertencia / Error Crítico', titulo: 'El error de dinero que cometes todos los meses sin saberlo' },
+          { enfoque: 'Curiosidad / Fórmula Secreta', titulo: 'Lo que los bancos no quieren que hagas con tus ahorros' },
+        ],
+      },
+      dinamismo_visual: {
+        segundos_por_cambio_visual: 2.1,
+        cadencia_habla_wpm: 162,
+        calificacion_ritmo: 'Óptimo',
+        pausas_muertas_detectadas_segundos: 0.1,
+      },
+      indice_guardados_compartidos: {
+        potencial_guardado: 'Alto',
+        potencial_compartido: 'Alto',
+        motivo_algoritmico: 'Las plantillas y reglas financieras tienen el ratio más alto de guardados orgánicos en Instagram.',
+        segundo_micro_compromiso: '00:08',
+      },
+      audio_y_musica: {
+        tipo_voz: 'Voz clara, pausada y asertiva que transmite confianza y profesionalismo.',
+        db_fondo_recomendado: '-22 dB',
+        requiere_trending_audio: true,
+        sugerencia_musical: 'Ambiental corporativo o Lo-Fi inspiracional a -22dB.',
+      },
+      estrategia_loop_viral: {
+        es_loop_infinito: true,
+        frase_conexion_loop: 'Y el primer paso para lograrlo es...',
+      },
+      brand_safety_monetizacion: {
+        apto_monetizacion: true,
+        clasificacion: 'Apto Todo Público',
+        detalles: 'Nicho con el RPM más alto del mercado ($8-$15 por mil vistas en YouTube/Reels).',
+      },
+      palabras_clave_seo: ['Finanzas', 'Ahorro', 'Inversion', 'Presupuesto', 'EducacionFinanciera'],
+    },
   },
 };

@@ -172,16 +172,6 @@ ${currentAppUrl}`;
                 </div>
               </div>
 
-              {analysisResult.opciones_exportacion_v2.recomienda_limpiar_marca_agua && (
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Aviso de Marca de Agua:</span>
-                    TikTok e Instagram reducen hasta un 70% la distribución de videos que contengan marcas de agua de plataformas rivales. Remuévela antes de subir.
-                  </div>
-                </div>
-              )}
-
               <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800 space-y-2 text-xs">
                 <span className="font-bold text-white block">Configuración de Branding:</span>
                 <div className="flex items-center justify-between text-neutral-300">

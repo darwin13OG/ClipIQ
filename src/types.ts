@@ -11,6 +11,7 @@ export interface DiagnosticoInicial {
   tiene_audio_voz: boolean;
   nicho_detectado: string;
   formato_video?: '9:16' | '16:9';
+  duracion_segundos?: number;
 }
 
 export interface MetricScores {
@@ -80,6 +81,54 @@ export interface OpcionesExportacionV2 {
   configuracion_outro_clipiq: ConfiguracionOutro;
 }
 
+export interface MetricasCreador {
+  retencion_30s_estimada: {
+    porcentaje: number;
+    benchmark_nicho: number;
+    veredicto: string;
+  };
+  swipe_ratio_estimado: {
+    porcentaje_visto: number;
+    porcentaje_deslizado: number;
+    diagnostico: string;
+  };
+  ctr_estimado: {
+    porcentaje: number;
+    titulos_ab_testing: {
+      enfoque: string;
+      titulo: string;
+    }[];
+  };
+  dinamismo_visual: {
+    segundos_por_cambio_visual: number;
+    cadencia_habla_wpm: number;
+    calificacion_ritmo: 'Óptimo' | 'Poco Dinámico' | 'Saturado';
+    pausas_muertas_detectadas_segundos: number;
+  };
+  indice_guardados_compartidos: {
+    potencial_guardado: 'Alto' | 'Medio' | 'Bajo';
+    potencial_compartido: 'Alto' | 'Medio' | 'Bajo';
+    motivo_algoritmico: string;
+    segundo_micro_compromiso: string;
+  };
+  audio_y_musica: {
+    tipo_voz: string;
+    db_fondo_recomendado: string;
+    requiere_trending_audio: boolean;
+    sugerencia_musical: string;
+  };
+  estrategia_loop_viral?: {
+    es_loop_infinito: boolean;
+    frase_conexion_loop: string;
+  };
+  brand_safety_monetizacion: {
+    apto_monetizacion: boolean;
+    clasificacion: 'Apto Todo Público' | 'Revisar Lenguaje' | 'Riesgo Música/Copyright';
+    detalles: string;
+  };
+  palabras_clave_seo: string[];
+}
+
 export interface ClipIQAnalysisResult {
   meta_app: ClipIQAppMeta;
   diagnostico_inicial: DiagnosticoInicial;
@@ -90,6 +139,7 @@ export interface ClipIQAnalysisResult {
   modulo_replicar_video: ModuloReplicarVideo;
   opciones_exportacion_v2: OpcionesExportacionV2;
   sugerencias_chat_interactivo: string[];
+  metricas_creador?: MetricasCreador;
 }
 
 export interface ChatMessage {
